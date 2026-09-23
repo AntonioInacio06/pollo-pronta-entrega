@@ -2,74 +2,106 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#1F2523">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1A1F1E">
+<meta name="color-scheme" content="light dark">
 <title>Pronta Entrega · Pollo Decor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 :root{
-  --bg:#F3F4F1; --surface:#FFFFFF; --surface-2:#E9EBE6; --muted:#EEF0EC;
-  --ink:#1F2523; --ink-2:#56605B; --ink-3:#7B847F; --line:#D6D9D2; --line-2:#E4E6E1;
-  --accent:#96582F; --accent-ink:#FFF; --accent-soft:#F1E6DD;
-  --ok:#2A7148; --ok-bg:#E1F0E6; --warn:#8A5E0F; --warn-bg:#F6ECD4; --crit:#A3372F;
+  --bg:#F2F3F0; --surface:#FFFFFF; --surface-2:#E9EBE6; --muted:#EDEFEB;
+  --ink:#1C2220; --ink-2:#525C57; --ink-3:#7F8883; --line:#D8DBD4; --line-2:#E8EAE5;
+  --accent:#8F5329; --accent-ink:#FFFFFF; --accent-soft:#F6EBE1;
+  --ok:#2A7148; --ok-bg:#E2F0E7; --warn:#8A5E0F; --warn-bg:#F7EDD6; --crit:#A3372F;
   --f-disp:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --topo:158px;
 }
 @media (prefers-color-scheme: dark){:root{
-  --bg:#131716; --surface:#1B201F; --surface-2:#242A28; --muted:#1F2523;
-  --ink:#E6E9E5; --ink-2:#A6AEAA; --ink-3:#838C88; --line:#343B38; --line-2:#2A302E;
-  --accent:#D38D5C; --accent-ink:#1B120D; --accent-soft:#3A2A20;
+  --bg:#121615; --surface:#1A1F1E; --surface-2:#232928; --muted:#1E2423;
+  --ink:#E7EAE6; --ink-2:#A8B0AB; --ink-3:#838C88; --line:#333A37; --line-2:#272E2C;
+  --accent:#D38D5C; --accent-ink:#1B120D; --accent-soft:#33241B;
   --ok:#74C495; --ok-bg:#1C3326; --warn:#E2B55E; --warn-bg:#3A2F16; --crit:#EA8F85;
 }}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body)}
-button,input,select{font:inherit;color:inherit}
+*{box-sizing:border-box}
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;overscroll-behavior:none}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 var(--f-body)}
+input,select,textarea{font-size:16px;font-family:inherit;color:inherit}
+button{font:inherit;color:inherit;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.topo{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px}
-.marca{font:700 10.5px/1 var(--f-disp);letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
-h1{font:700 22px/1.1 var(--f-disp);margin:4px 0 2px}
-.sub{font-size:12.5px;color:var(--ink-2)}
-.busca-linha{display:flex;gap:8px;margin-top:10px}
-input[type=search]{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--muted);font-size:16px}
-.chips{display:flex;gap:6px;overflow-x:auto;padding:10px 16px 0;scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:none;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:13px;color:var(--ink-2);cursor:pointer}
-.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-main{padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 90px);display:grid;gap:10px;max-width:760px;margin:0 auto}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:8px}
-.card h2{font:600 16px/1.25 var(--f-body);margin:0}
-.cor{font-size:13px;color:var(--ink-2)}
-.tags{display:flex;flex-wrap:wrap;gap:6px}
-.tag{font:600 10.5px/1 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;padding:5px 8px;border-radius:999px}
-.tag.linha{background:var(--ok-bg);color:var(--ok)}
-.tag.fora{background:var(--muted);color:var(--ink-3);border:1px solid var(--line)}
-.tag.lum{background:var(--warn-bg);color:var(--warn)}
-.linha-qtd{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--line-2);padding-top:10px}
-.disp{font:500 13px var(--f-body);color:var(--ink-2)}
-.disp b{font:600 20px/1 var(--f-mono);color:var(--ink);margin-right:4px}
-.disp.zero b{color:var(--crit)}
-.contador{display:flex;align-items:center;gap:8px}
-.contador button{width:40px;height:40px;border:1px solid var(--line);background:var(--surface-2);border-radius:8px;font:600 20px/1 var(--f-mono);cursor:pointer}
-.contador button:disabled{opacity:.35}
-.contador .n{min-width:34px;text-align:center;font:600 18px var(--f-mono)}
-.reservado{background:var(--accent-soft);border-color:var(--accent)}
-.minha{font-size:12.5px;color:var(--accent);font-weight:600}
-.vazio{padding:40px 16px;text-align:center;color:var(--ink-3)}
-.rodape{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px}
-.rodape b{font-family:var(--f-mono)}
-.atualizado{display:flex;align-items:center;gap:8px;margin:0;padding:9px 16px;background:var(--ok-bg);color:var(--ok);font:600 13px var(--f-body);border-bottom:1px solid var(--line-2)}
+
+.topo{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.cabeca{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 8px}
+.marca{font:700 10px/1 var(--f-disp);letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 20px/1.05 var(--f-disp);margin:3px 0 0}
+.euSou{font-size:11.5px;color:var(--ink-3);text-align:right;max-width:46%;padding-top:3px;line-height:1.3}
+.atualizado{display:flex;align-items:center;gap:7px;padding:7px 14px;background:var(--ok-bg);color:var(--ok);font:600 12.5px var(--f-body)}
 .atualizado.velho{background:var(--warn-bg);color:var(--warn)}
-.atualizado .ponto{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
-.atualizado small{font-weight:400;color:var(--ink-2)}
-.aviso{margin:12px 16px 0;padding:10px 12px;border-radius:8px;background:var(--warn-bg);color:var(--ink);font-size:13px;border-left:3px solid var(--warn)}
-.erro{background:#F6E0DC;border-left-color:var(--crit)}
-.entrar{max-width:420px;margin:40px auto;padding:0 16px;display:grid;gap:12px}
-.entrar input{padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:16px}
-.entrar button{padding:12px;border:0;border-radius:8px;background:var(--accent);color:var(--accent-ink);font:600 16px var(--f-disp);cursor:pointer}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 80px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:13.5px;z-index:9;max-width:90vw;text-align:center}
+.atualizado .ponto{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.atualizado em{font-style:normal;font-weight:400;color:var(--ink-2)}
+.buscaLinha{display:flex;gap:8px;padding:9px 14px 0}
+.buscaLinha input{flex:1;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--muted)}
+.limpar{padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);font-size:13px;color:var(--ink-2)}
+.limpar:active{background:var(--line)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:9px 14px;scrollbar-width:none;touch-action:pan-x}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font:500 13px var(--f-body);color:var(--ink-2);white-space:nowrap;transition:background 120ms ease-out}
+.chip b{font-family:var(--f-mono);font-weight:600;margin-left:6px;color:var(--ink-3)}
+.chip:active{background:var(--surface-2)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-pressed="true"] b{color:var(--bg);opacity:.72}
+
+main{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 78px)}
+.grupo{position:sticky;top:var(--topo);z-index:10;display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:10px 14px 7px;background:var(--bg);border-bottom:1px solid var(--line-2)}
+.grupo h2{font:700 12px/1 var(--f-disp);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin:0}
+.grupo span{font:600 11.5px var(--f-mono);color:var(--ink-3)}
+.item{display:grid;grid-template-columns:1fr auto;gap:7px 12px;align-items:center;padding:12px 14px;background:var(--surface);border-bottom:1px solid var(--line-2)}
+.item.reservado{background:var(--accent-soft)}
+.nome{font:600 15.5px/1.25 var(--f-body);margin:0 0 4px}
+.detalhe{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.etq{font:600 10px/1 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;padding:4px 6px;border-radius:4px}
+.etq.linha{background:var(--ok-bg);color:var(--ok)}
+.etq.fora{background:var(--surface-2);color:var(--ink-3)}
+.etq.lum{background:var(--warn-bg);color:var(--warn)}
+.direita{display:flex;align-items:center;gap:10px}
+.qtd{text-align:right;min-width:48px}
+.qtd b{display:block;font:600 22px/1 var(--f-mono);letter-spacing:-.02em}
+.qtd small{font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em}
+.qtd.zero b{color:var(--crit)}
+.passo{display:flex;align-items:center;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:3px}
+.passo button{width:40px;height:40px;border:0;background:transparent;border-radius:9px;font:600 20px/1 var(--f-mono);transition:transform 100ms ease-out,background 100ms ease-out}
+.passo button:active{background:var(--line);transform:scale(.94)}
+.passo button:disabled{opacity:.3}
+.passo .n{min-width:26px;text-align:center;font:600 16px var(--f-mono)}
+.recado{grid-column:1/-1;font-size:12px;font-weight:600;color:var(--accent)}
+.vazio{padding:44px 22px;text-align:center;color:var(--ink-3)}
+.aviso{margin:12px 14px;padding:11px 13px;border-radius:9px;background:var(--warn-bg);color:var(--ink);font-size:13px;border-left:3px solid var(--warn)}
+.aviso.erro{background:#F7E2DE;border-left-color:var(--crit)}
+@media (prefers-color-scheme: dark){.aviso.erro{background:#3E2320}}
+
+.rodape{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 14px calc(env(safe-area-inset-bottom,0px) + 9px)}
+.bloco{display:flex;flex-direction:column;line-height:1.15}
+.rot{font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em}
+.val{font:600 17px var(--f-mono)}
+.val.reserva{color:var(--accent)}
+.preco{font-size:11.5px;color:var(--ink-3);text-align:right;line-height:1.25}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 78px);z-index:30;
+  background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:999px;font-size:13.5px;max-width:92vw;text-align:center}
+.entrar{max-width:420px;margin:48px auto;padding:0 18px;display:grid;gap:12px}
+.entrar input{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.entrar button{padding:14px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:600 16px var(--f-disp)}
+.entrar button:active{transform:scale(.99)}
+@media (hover:hover) and (pointer:fine){
+  .chip:hover{border-color:var(--accent)}
+  .limpar:hover{border-color:var(--accent)}
+  .passo button:hover:not(:disabled){background:var(--line)}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -81,103 +113,160 @@ const SUPA_URL = "https://qatazfwvckitolhqsqtl.supabase.co";
 const SUPA_KEY = "sb_publishable_Mq2CWYw_E4T13_rIYgH83Q_678o_prh";
 const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 const $ = (s, r = document) => r.querySelector(s);
-const el = (t, a, ...k) => { const e = document.createElement(t); if (a) for (const [n, v] of Object.entries(a)) { if (v == null || v === false) continue; if (n === "class") e.className = v; else if (n.startsWith("on")) e.addEventListener(n.slice(2), v); else e.setAttribute(n, v === true ? "" : v); } for (const c of k.flat()) { if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); } return e; };
+const el = (t, a, ...k) => { const e = document.createElement(t);
+  if (a) for (const [n, v] of Object.entries(a)) { if (v == null || v === false) continue;
+    if (n === "class") e.className = v; else if (n.startsWith("on")) e.addEventListener(n.slice(2), v); else e.setAttribute(n, v === true ? "" : v); }
+  for (const c of k.flat()) { if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e; };
 const fmt = (n) => (Number(n) || 0).toLocaleString("pt-BR");
-const titulo = (s) => String(s || "").toLowerCase().replace(/(^|[\s\/(\-])([a-zà-ú])/g, (m, a, b) => a + b.toUpperCase()).replace(/\bLc\b/g, "LC").replace(/\bTv\b/g, "TV");
+const titulo = (s) => String(s || "").toLowerCase()
+  .replace(/(^|[\s\/(\-])([a-z\u00e0-\u00fa])/g, (m, a, b) => a + b.toUpperCase())
+  .replace(/\bLc\b/g, "LC").replace(/\bTv\b/g, "TV");
+const semAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-let token = null, dados = null, filtro = "todos", busca = "", ocupado = false;
+let token = null, dados = null, filtro = "todos", busca = "", ocupado = false, montado = false;
 try { token = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("pe-token"); } catch (e) {}
-if (location.hash.includes("t=")) { try { localStorage.setItem("pe-token", token); } catch (e) {} history.replaceState(null, "", location.pathname); }
+if (token && location.hash.indexOf("t=") >= 0) { try { localStorage.setItem("pe-token", token); } catch (e) {} history.replaceState(null, "", location.pathname); }
 
 function toast(t) { const d = el("div", { class: "toast" }, t); document.body.append(d); setTimeout(() => d.remove(), 2600); }
 async function chamar(fn, args) { const { data, error } = await sb.rpc(fn, args); if (error) throw error; return data; }
 
-async function carregar() {
-  try { dados = await chamar("api_estoque", { p_token: token }); }
-  catch (e) { dados = { erro: "rede", detalhe: e.message }; }
-  desenhar();
+async function carregar(silencioso) {
+  try { const novo = await chamar("api_estoque", { p_token: token }); if (novo && novo.erro && silencioso) return; dados = novo; }
+  catch (e) { if (silencioso) return; dados = { erro: "rede" }; }
+  if (!dados || dados.erro) { montado = false; return telaAviso(); }
+  if (!montado) montarTela(); else { atualizarTopo(); renderLista(); }
 }
-function entrar() {
-  $("#app").replaceChildren(el("div", { class: "entrar" },
-    el("div", { class: "marca" }, "Pollo Decor"),
-    el("h1", null, "Pronta entrega"),
-    el("p", { class: "sub" }, "Use o link que a fábrica mandou para você. Se preferir, cole aqui o seu código de acesso."),
-    el("input", { id: "cod", placeholder: "código de acesso", autocomplete: "off", autocapitalize: "off" }),
-    el("button", { onclick: () => { const v = $("#cod").value.trim(); if (!v) return; token = v; try { localStorage.setItem("pe-token", v); } catch (e) {} carregar(); } }, "Entrar")));
-}
-function desenhar() {
-  if (!token) return entrar();
-  const app = $("#app");
-  if (!dados || dados.erro) {
-    const msg = dados && dados.erro === "acesso" ? "Este código de acesso não vale mais. Fale com a fábrica."
-      : dados && dados.erro === "sem_publicacao" ? "A fábrica ainda não publicou a pronta entrega de hoje."
-      : "Sem conexão agora. Tente de novo em alguns segundos.";
-    app.replaceChildren(el("div", { class: "topo" }, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Pronta entrega")),
-      el("div", { class: "aviso erro" }, msg),
-      el("div", { class: "vazio" }, el("button", { class: "chip", onclick: carregar }, "Tentar de novo"),
-        dados && dados.erro === "acesso" ? el("button", { class: "chip", style: "margin-left:8px", onclick: () => { try { localStorage.removeItem("pe-token"); } catch (e) {} token = null; desenhar(); } }, "Usar outro código") : null));
-    return;
-  }
-  const p = dados.publicacao, itens = dados.itens || [];
-  const dt = new Date(p.em);
-  const quando = dt.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-  const diasAtras = Math.floor((Date.now() - dt) / 86400000);
-  const quandoTexto = (diasAtras <= 0 ? "hoje às " + dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-    : diasAtras === 1 ? "ontem às " + dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-    : "há " + diasAtras + " dias (" + quando + ")");
-  const lista = itens.filter((i) => (filtro === "todos" || (filtro === "linha" ? i.em_linha : filtro === "fora" ? !i.em_linha : filtro === "minhas" ? i.minha_reserva > 0 : true))
-    && (!busca || (titulo(i.produto) + " " + i.cor).toLowerCase().includes(busca.toLowerCase())));
-  const totalDisp = itens.reduce((a, i) => a + i.disponivel, 0), minhas = itens.reduce((a, i) => a + i.minha_reserva, 0);
 
-  app.replaceChildren(...[
-    el("div", { class: "topo" },
-      el("div", { class: "marca" }, "Pollo Decor"),
-      el("h1", null, "Pronta entrega"),
-      el("div", { class: "sub" }, dados.representante.nome + (dados.representante.regiao ? " · " + dados.representante.regiao : "")),
-      el("div", { class: "busca-linha" },
-        el("input", { type: "search", placeholder: "Buscar produto ou cor", value: busca, oninput: (e) => { busca = e.target.value; desenhar(); $("input[type=search]").focus(); } }))),
-    el("div", { class: "atualizado" + (diasAtras >= 1 ? " velho" : "") },
-      el("span", { class: "ponto" }), "Estoque atualizado " + quandoTexto,
-      el("small", null, diasAtras >= 1 ? "· confirme com a fábrica antes de prometer prazo" : "· pela fábrica")),
-    el("div", { class: "chips" },
-      ...[["todos", "Tudo"], ["linha", "Em linha"], ["fora", "Fora de linha"], ["minhas", "Minhas reservas"]].map(([v, t]) =>
-        el("button", { class: "chip", "aria-pressed": String(filtro === v), onclick: () => { filtro = v; desenhar(); } }, t))),
-    p.observacao ? el("div", { class: "aviso" }, p.observacao) : null,
-    el("main", null, lista.length ? lista.map(cartao) : el("div", { class: "vazio" }, "Nada encontrado.")),
-    el("div", { class: "rodape" },
-      el("span", null, "Disponível: ", el("b", null, fmt(totalDisp)), " pç"),
-      el("span", null, minhas ? ["Reservei hoje: ", el("b", null, fmt(minhas)), " pç · preço sob consulta"] : "Preço sob consulta"))].filter(Boolean));
+function telaEntrar(msg) {
+  montado = false;
+  const cod = el("input", { id: "cod", placeholder: "código de acesso", autocomplete: "off", autocapitalize: "none", autocorrect: "off", spellcheck: "false", enterkeyhint: "go" });
+  const ir = () => { const v = cod.value.trim(); if (!v) return; token = v; try { localStorage.setItem("pe-token", v); } catch (e) {} carregar(); };
+  cod.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); });
+  $("#app").replaceChildren(el("div", { class: "entrar" },
+    el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Pronta entrega"),
+    el("p", { style: "color:var(--ink-2);font-size:13.5px;margin:0" }, msg || "Use o link que a fábrica mandou para você, ou cole aqui o seu código de acesso."),
+    cod, el("button", { type: "button", onclick: ir }, "Entrar")));
 }
-function cartao(i) {
-  const disp = i.disponivel, meu = i.minha_reserva;
+function telaAviso() {
+  if (dados && dados.erro === "acesso") { try { localStorage.removeItem("pe-token"); } catch (e) {} token = null;
+    return telaEntrar("Este código não vale mais. Peça o novo para a fábrica."); }
+  const msg = dados && dados.erro === "sem_publicacao" ? "A fábrica ainda não publicou a pronta entrega. Tente daqui a pouco."
+    : "Sem conexão agora. Confira a internet e tente de novo.";
+  $("#app").replaceChildren(
+    el("div", { class: "topo" }, el("div", { class: "cabeca" }, el("div", null, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Pronta entrega")))),
+    el("div", { class: "aviso erro" }, msg),
+    el("div", { class: "vazio" }, el("button", { class: "chip", type: "button", onclick: () => carregar() }, "Tentar de novo")));
+}
+
+function montarTela() {
+  montado = true;
+  const bx = el("input", { type: "search", id: "busca", placeholder: "Buscar produto ou cor", autocomplete: "off",
+    autocapitalize: "none", autocorrect: "off", spellcheck: "false", enterkeyhint: "search", value: busca });
+  bx.addEventListener("input", () => { busca = bx.value; renderLista(); });
+  $("#app").replaceChildren(...[
+    el("div", { class: "topo", id: "topo" },
+      el("div", { class: "cabeca" },
+        el("div", null, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Pronta entrega")),
+        el("div", { class: "euSou", id: "euSou" })),
+      el("div", { class: "atualizado", id: "atualizado" }),
+      el("div", { class: "buscaLinha" }, bx,
+        el("button", { class: "limpar", type: "button", onclick: () => { bx.value = ""; busca = ""; renderLista(); bx.focus(); } }, "Limpar")),
+      el("div", { class: "chips", id: "chips" })),
+    dados.publicacao && dados.publicacao.observacao ? el("div", { class: "aviso" }, dados.publicacao.observacao) : null,
+    el("main", { id: "lista" }),
+    el("div", { class: "rodape" },
+      el("div", { class: "bloco" }, el("span", { class: "rot" }, "Disponível agora"), el("span", { class: "val", id: "totDisp" }, "—")),
+      el("div", { class: "bloco" }, el("span", { class: "rot" }, "Reservei hoje"), el("span", { class: "val reserva", id: "totMeu" }, "—")),
+      el("div", { class: "preco" }, "Preço sob consulta", el("br"), "com a fábrica"))].filter(Boolean));
+  atualizarTopo(); renderLista();
+  const medir = () => document.documentElement.style.setProperty("--topo", $("#topo").offsetHeight + "px");
+  requestAnimationFrame(medir); window.addEventListener("resize", medir);
+}
+function atualizarTopo() {
+  const p = dados.publicacao, r = dados.representante;
+  $("#euSou").textContent = r.nome + (r.regiao ? " · " + r.regiao : "");
+  const dt = new Date(p.em), agora = new Date();
+  const hhmm = dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const hoje = dt.toDateString() === agora.toDateString();
+  const ontem = Math.round((agora - dt) / 86400000) <= 1;
+  const texto = hoje ? "Estoque atualizado hoje às " + hhmm
+    : ontem ? "Estoque atualizado ontem às " + hhmm
+    : "Estoque atualizado em " + dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " às " + hhmm;
+  const faixa = $("#atualizado");
+  faixa.className = "atualizado" + (hoje ? "" : " velho");
+  faixa.replaceChildren(el("span", { class: "ponto" }), texto,
+    el("em", null, hoje ? " · pela fábrica" : " · confirme antes de prometer prazo"));
+}
+
+const GRUPOS = ["Home", "Bancada", "Painel", "Módulo", "Estofados", "Mesas e outros"];
+const ordemGrupo = (c) => { const i = GRUPOS.indexOf(c); return i < 0 ? 98 : i; };
+function filtrados() {
+  const termos = semAcento(busca).trim().split(/\s+/).filter(Boolean);
+  return (dados.itens || []).filter((i) => {
+    if (filtro === "linha" && !i.em_linha) return false;
+    if (filtro === "fora" && i.em_linha) return false;
+    if (filtro === "minhas" && !i.minha_reserva) return false;
+    if (!termos.length) return true;
+    const alvo = semAcento(i.produto + " " + i.cor + " " + (i.categoria || ""));
+    return termos.every((t) => alvo.indexOf(t) >= 0);
+  });
+}
+function renderChips() {
+  const it = dados.itens || [];
+  const conta = { todos: it.length, linha: it.filter((i) => i.em_linha).length, fora: it.filter((i) => !i.em_linha).length, minhas: it.filter((i) => i.minha_reserva).length };
+  const par = [["todos", "Tudo"], ["linha", "Em linha"], ["fora", "Fora de linha"], ["minhas", "Minhas reservas"]];
+  $("#chips").replaceChildren(...par.map(([v, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(filtro === v),
+    onclick: () => { filtro = v; renderLista(); window.scrollTo({ top: 0, behavior: "smooth" }); } }, t, el("b", null, fmt(conta[v])))));
+}
+function renderLista() {
+  renderChips();
+  const todos = dados.itens || [], itens = filtrados(), lista = $("#lista");
+  $("#totDisp").textContent = fmt(todos.reduce((a, i) => a + i.disponivel, 0)) + " pç";
+  $("#totMeu").textContent = fmt(todos.reduce((a, i) => a + i.minha_reserva, 0)) + " pç";
+  if (!itens.length) { lista.replaceChildren(el("div", { class: "vazio" }, busca ? "Nada encontrado para “" + busca + "”." : "Nada nesta lista.")); return; }
+  const grupos = {};
+  for (const i of itens) { const g = i.categoria || "Mesas e outros"; (grupos[g] = grupos[g] || []).push(i); }
+  const blocos = [];
+  for (const g of Object.keys(grupos).sort((a, b) => ordemGrupo(a) - ordemGrupo(b) || a.localeCompare(b))) {
+    const lst = grupos[g].sort((a, b) => b.disponivel - a.disponivel || String(a.produto).localeCompare(String(b.produto)));
+    blocos.push(el("div", { class: "grupo" }, el("h2", null, g),
+      el("span", null, fmt(lst.reduce((a, i) => a + i.disponivel, 0)) + " pç · " + lst.length + (lst.length === 1 ? " produto" : " produtos"))));
+    for (const i of lst) blocos.push(linha(i));
+  }
+  lista.replaceChildren(...blocos);
+}
+function linha(i) {
   const mudar = async (d) => {
     if (ocupado) return; ocupado = true;
-    const novo = Math.max(0, meu + d);
-    try { const r = await chamar("api_reservar", { p_token: token, p_item: i.id, p_qtd: novo });
-      if (r && r.erro === "indisponivel") toast("Outro representante acabou de reservar. Sobraram " + fmt(r.livre) + ".");
+    const novo = Math.max(0, i.minha_reserva + d);
+    try {
+      const r = await chamar("api_reservar", { p_token: token, p_item: i.id, p_qtd: novo });
+      if (r && r.erro === "indisponivel") toast("Outro representante reservou antes. Sobraram " + fmt(r.livre) + ".");
       else if (r && r.erro) toast("Não consegui reservar agora.");
-      else { dados = r; toast(novo ? "Reservado: " + fmt(novo) + " pç" : "Reserva cancelada"); }
+      else { dados = r; toast(novo ? "Reservado " + fmt(novo) + " · " + titulo(i.produto) : "Reserva cancelada"); }
     } catch (e) { toast("Sem conexão. Tente de novo."); }
-    ocupado = false; desenhar();
+    ocupado = false; renderLista();
   };
-  return el("div", { class: "card" + (meu ? " reservado" : "") },
-    el("h2", null, titulo(i.produto)),
-    el("div", { class: "cor" }, titulo(i.cor)),
-    el("div", { class: "tags" },
-      el("span", { class: "tag " + (i.em_linha ? "linha" : "fora") }, i.em_linha ? "Em linha" : "Fora de linha"),
-      i.sem_luminaria ? el("span", { class: "tag lum" }, "Sem luminária") : null,
-      i.observacao && !i.sem_luminaria ? el("span", { class: "tag lum" }, i.observacao) : null),
-    el("div", { class: "linha-qtd" },
-      el("span", { class: "disp" + (disp ? "" : " zero") }, el("b", null, fmt(disp)), disp === 1 ? "disponível" : "disponíveis"),
-      el("div", { class: "contador" },
-        el("button", { onclick: () => mudar(-1), disabled: !meu, "aria-label": "Tirar uma" }, "−"),
-        el("span", { class: "n" }, fmt(meu)),
-        el("button", { onclick: () => mudar(1), disabled: disp <= 0, "aria-label": "Reservar uma" }, "+"))),
-    meu ? el("div", { class: "minha" }, "Reservado por você hoje. Se não virar pedido até o fim do dia, volta para o estoque.") : null);
+  return el("div", { class: "item" + (i.minha_reserva ? " reservado" : "") },
+    el("div", null,
+      el("p", { class: "nome" }, titulo(i.produto)),
+      el("div", { class: "detalhe" }, titulo(i.cor),
+        el("span", { class: "etq " + (i.em_linha ? "linha" : "fora") }, i.em_linha ? "Em linha" : "Fora de linha"),
+        i.sem_luminaria ? el("span", { class: "etq lum" }, "Sem luminária") : null,
+        i.observacao && !i.sem_luminaria ? el("span", { class: "etq lum" }, i.observacao) : null)),
+    el("div", { class: "direita" },
+      el("div", { class: "qtd" + (i.disponivel ? "" : " zero") }, el("b", null, fmt(i.disponivel)), el("small", null, "livres")),
+      el("div", { class: "passo" },
+        el("button", { type: "button", "aria-label": "Tirar uma", disabled: !i.minha_reserva, onclick: () => mudar(-1) }, "−"),
+        el("span", { class: "n" }, fmt(i.minha_reserva)),
+        el("button", { type: "button", "aria-label": "Reservar uma", disabled: i.disponivel <= 0, onclick: () => mudar(1) }, "+"))),
+    i.minha_reserva ? el("div", { class: "recado" }, "Você reservou " + fmt(i.minha_reserva) + " hoje. Sem pedido até o fim do dia, volta para o estoque.") : null);
 }
-if (token) carregar(); else entrar();
-document.addEventListener("visibilitychange", () => { if (!document.hidden && token) carregar(); });
-setInterval(() => { if (!document.hidden && token && !ocupado) carregar(); }, 120000);
+
+if (token) carregar(); else telaEntrar();
+document.addEventListener("visibilitychange", () => { if (!document.hidden && token && !ocupado) carregar(true); });
+setInterval(() => { if (!document.hidden && token && !ocupado) carregar(true); }, 120000);
 </script>
 </body>
 </html>

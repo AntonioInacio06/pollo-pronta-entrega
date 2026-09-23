@@ -2,57 +2,107 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1A1F1E">
+<meta name="color-scheme" content="light dark">
 <title>Reservas · Pollo Decor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 :root{
-  --bg:#F3F4F1; --surface:#FFF; --surface-2:#E9EBE6; --muted:#EEF0EC;
-  --ink:#1F2523; --ink-2:#56605B; --ink-3:#7B847F; --line:#D6D9D2; --line-2:#E4E6E1;
-  --accent:#96582F; --accent-ink:#FFF; --ok:#2A7148; --ok-bg:#E1F0E6; --warn:#8A5E0F; --warn-bg:#F6ECD4; --crit:#A3372F; --crit-bg:#F6E0DC;
+  --bg:#F2F3F0; --surface:#FFFFFF; --surface-2:#E9EBE6; --muted:#EDEFEB;
+  --ink:#1C2220; --ink-2:#525C57; --ink-3:#7F8883; --line:#D8DBD4; --line-2:#E8EAE5;
+  --accent:#8F5329; --accent-ink:#FFFFFF; --accent-soft:#F6EBE1;
+  --ok:#2A7148; --ok-bg:#E2F0E7; --warn:#8A5E0F; --warn-bg:#F7EDD6; --crit:#A3372F; --crit-bg:#F7E2DE;
   --f-disp:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
-  --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root{
-  --bg:#131716; --surface:#1B201F; --surface-2:#242A28; --muted:#1F2523;
-  --ink:#E6E9E5; --ink-2:#A6AEAA; --ink-3:#838C88; --line:#343B38; --line-2:#2A302E;
-  --accent:#D38D5C; --accent-ink:#1B120D; --ok:#74C495; --ok-bg:#1C3326; --warn:#E2B55E; --warn-bg:#3A2F16; --crit:#EA8F85; --crit-bg:#3E2320;
+  --bg:#121615; --surface:#1A1F1E; --surface-2:#232928; --muted:#1E2423;
+  --ink:#E7EAE6; --ink-2:#A8B0AB; --ink-3:#838C88; --line:#333A37; --line-2:#272E2C;
+  --accent:#D38D5C; --accent-ink:#1B120D; --accent-soft:#33241B;
+  --ok:#74C495; --ok-bg:#1C3326; --warn:#E2B55E; --warn-bg:#3A2F16; --crit:#EA8F85; --crit-bg:#3E2320;
 }}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);padding:0 0 60px}
-button,input,select{font:inherit;color:inherit}
-.topo{background:var(--surface);border-bottom:2px solid var(--ink);padding:calc(env(safe-area-inset-top,0px) + 16px) clamp(16px,4vw,32px) 14px}
-.marca{font:700 10.5px/1 var(--f-disp);letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
-h1{font:700 26px/1.1 var(--f-disp);margin:4px 0 0}
-.sub{font-size:13px;color:var(--ink-2);margin-top:4px}
-main{max-width:1100px;margin:0 auto;padding:16px clamp(16px,4vw,32px);display:grid;gap:18px}
-.placar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.placar div{background:var(--surface);padding:12px 14px}
-.placar .rot{font:600 10.5px/1.2 var(--f-disp);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
-.placar .val{font:600 26px/1.15 var(--f-mono)}
-.abas{display:flex;gap:0;border-bottom:1px solid var(--line)}
-.abas button{padding:10px 14px;border:0;border-bottom:3px solid transparent;background:none;font:600 15px var(--f-disp);color:var(--ink-2);cursor:pointer;margin-bottom:-1px}
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;overscroll-behavior:none}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 var(--f-body)}
+input,select,textarea{font-size:16px;font-family:inherit;color:inherit}
+button{font:inherit;color:inherit;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.topo{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.cabeca{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 8px;max-width:1100px;margin:0 auto}
+.marca{font:700 10px/1 var(--f-disp);letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 20px/1.05 var(--f-disp);margin:3px 0 0}
+.diaTxt{font-size:11.5px;color:var(--ink-3);text-align:right;line-height:1.35;padding-top:3px}
+.abas{display:flex;gap:0;padding:0 14px;max-width:1100px;margin:0 auto;overflow-x:auto;scrollbar-width:none}
+.abas::-webkit-scrollbar{display:none}
+.abas button{flex:none;padding:10px 12px;border:0;border-bottom:3px solid transparent;background:none;font:600 14px var(--f-disp);color:var(--ink-3);white-space:nowrap}
 .abas button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
-.quadro{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:auto}
-table{border-collapse:collapse;width:100%}
-th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line-2);vertical-align:middle}
-th{font:600 10.5px/1.2 var(--f-disp);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);background:var(--surface-2);white-space:nowrap}
-td.num,th.num{text-align:right;font-family:var(--f-mono)}
-.pill{display:inline-block;font:600 10px/1 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;padding:4px 7px;border-radius:999px}
-.pill.linha{background:var(--ok-bg);color:var(--ok)} .pill.fora{background:var(--muted);color:var(--ink-3);border:1px solid var(--line)}
-.pill.lum{background:var(--warn-bg);color:var(--warn)} .pill.ped{background:var(--ok-bg);color:var(--ok)}
-.bt{padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface-2);cursor:pointer;font-size:12.5px}
-.bt:hover{border-color:var(--accent)}
+.abas button b{font-family:var(--f-mono);font-size:12px;margin-left:5px;color:var(--ink-3)}
+
+.placar{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+@media (min-width:600px){.placar{grid-template-columns:repeat(4,1fr)}}
+.placar div{background:var(--surface);padding:9px 14px}
+.placar .rot{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.placar .val{font:600 22px/1.15 var(--f-mono)}
+.placar .val.pend{color:var(--accent)} .placar .val.ped{color:var(--ok)}
+.placar .un{font-size:10.5px;color:var(--ink-3)}
+
+.ferramentas{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;max-width:1100px;margin:0 auto}
+.ferramentas input[type=search]{flex:1;min-width:160px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--muted)}
+.ferramentas input[type=date]{padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--muted)}
+.bt{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);font-size:13.5px;color:var(--ink-2);transition:background 120ms ease-out}
+.bt:active{background:var(--line);transform:scale(.98)}
 .bt.forte{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.linhaform{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
-.linhaform input{padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--muted);min-width:140px}
-.link{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3);overflow-wrap:anywhere}
-.vazio{padding:32px;text-align:center;color:var(--ink-3)}
-.entrar{max-width:420px;margin:60px auto;display:grid;gap:12px;padding:0 16px}
-.entrar input{padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:16px}
-.msg{font-size:13px;color:var(--ink-2);min-height:1.2em}
+.bt.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:0 14px 10px;max-width:1100px;margin:0 auto;scrollbar-width:none;touch-action:pan-x}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font:500 13px var(--f-body);color:var(--ink-2);white-space:nowrap}
+.chip b{font-family:var(--f-mono);font-weight:600;margin-left:6px;color:var(--ink-3)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-pressed="true"] b{color:var(--bg);opacity:.72}
+
+main{max-width:1100px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom,0px) + 40px)}
+.pessoa{margin:0 0 10px;background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.pessoaTopo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;background:var(--surface-2)}
+.pessoaNome{font:700 15px/1.2 var(--f-disp);letter-spacing:.02em}
+.pessoaSub{font-size:11.5px;color:var(--ink-3)}
+.pessoaNum{text-align:right;font:600 13px var(--f-mono);white-space:nowrap}
+.pessoaNum .pend{color:var(--accent)}
+.res{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line-2)}
+.res:last-child{border-bottom:0}
+.res.feito{background:var(--ok-bg)}
+.resNome{font:600 14.5px/1.25 var(--f-body)}
+.resSub{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;font-size:12px;color:var(--ink-2);margin-top:3px}
+.etq{font:600 10px/1 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;padding:4px 6px;border-radius:4px}
+.etq.linha{background:var(--ok-bg);color:var(--ok)}
+.etq.fora{background:var(--surface-2);color:var(--ink-3)}
+.etq.lum{background:var(--warn-bg);color:var(--warn)}
+.direita{display:flex;align-items:center;gap:10px}
+.qtd{text-align:right;min-width:44px}
+.qtd b{display:block;font:600 20px/1 var(--f-mono)}
+.qtd small{font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em}
+.vazio{padding:40px 20px;text-align:center;color:var(--ink-3)}
+.cad{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:10px}
+.cad input{flex:1;min-width:140px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--muted)}
+.rep{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;padding:12px 14px;background:var(--surface);border-bottom:1px solid var(--line-2)}
+.rep.bloq{opacity:.62}
+.repLink{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.repLink code{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);overflow-wrap:anywhere;flex:1;min-width:120px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);z-index:30;
+  background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:999px;font-size:13.5px;max-width:92vw;text-align:center}
+.entrar{max-width:420px;margin:48px auto;padding:0 18px;display:grid;gap:12px}
+.entrar input{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.entrar button{padding:14px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:600 16px var(--f-disp)}
+@media (hover:hover) and (pointer:fine){
+  .bt:hover{border-color:var(--accent)}
+  .chip:hover{border-color:var(--accent)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
@@ -63,92 +113,178 @@ const SUPA_URL = "https://qatazfwvckitolhqsqtl.supabase.co";
 const SUPA_KEY = "sb_publishable_Mq2CWYw_E4T13_rIYgH83Q_678o_prh";
 const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 const $ = (s) => document.querySelector(s);
-const el = (t, a, ...k) => { const e = document.createElement(t); if (a) for (const [n, v] of Object.entries(a)) { if (v == null || v === false) continue; if (n === "class") e.className = v; else if (n.startsWith("on")) e.addEventListener(n.slice(2), v); else e.setAttribute(n, v === true ? "" : v); } for (const c of k.flat()) { if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); } return e; };
+const el = (t, a, ...k) => { const e = document.createElement(t);
+  if (a) for (const [n, v] of Object.entries(a)) { if (v == null || v === false) continue;
+    if (n === "class") e.className = v; else if (n.startsWith("on")) e.addEventListener(n.slice(2), v); else e.setAttribute(n, v === true ? "" : v); }
+  for (const c of k.flat()) { if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e; };
 const fmt = (n) => (Number(n) || 0).toLocaleString("pt-BR");
-const titulo = (s) => String(s || "").toLowerCase().replace(/(^|[\s\/(\-])([a-zà-ú])/g, (m, a, b) => a + b.toUpperCase()).replace(/\bLc\b/g, "LC");
+const titulo = (s) => String(s || "").toLowerCase()
+  .replace(/(^|[\s\/(\-])([a-z\u00e0-\u00fa])/g, (m, a, b) => a + b.toUpperCase())
+  .replace(/\bLc\b/g, "LC").replace(/\bTv\b/g, "TV");
+const semAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const hora = (t) => new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+const dataBR = (d) => { const p = String(d || "").split("-"); return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : String(d || ""); };
 const LINK_APP = location.origin + location.pathname.replace(/gerente(\.html)?$/, "");
 
-let token = null, aba = "reservas", reservas = null, reps = null, dia = null, msg = "";
+let token = null, aba = "reservas", filtro = "pendentes", busca = "", reservas = null, reps = null, dia = null, montado = false, ocupado = false;
 try { token = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("pe-gerente"); } catch (e) {}
-if (location.hash.includes("t=")) { try { localStorage.setItem("pe-gerente", token); } catch (e) {} history.replaceState(null, "", location.pathname); }
+if (token && location.hash.indexOf("t=") >= 0) { try { localStorage.setItem("pe-gerente", token); } catch (e) {} history.replaceState(null, "", location.pathname); }
 const chamar = async (fn, args) => { const { data, error } = await sb.rpc(fn, args); if (error) throw error; return data; };
+function toast(t) { const d = el("div", { class: "toast" }, t); document.body.append(d); setTimeout(() => d.remove(), 2600); }
 
 async function carregar() {
   try {
-    reservas = await chamar("api_reservas", { p_token: token, p_dia: dia });
-    if (reservas && reservas.erro) { desenhaEntrar("Este código não é de gerente."); return; }
+    const r = await chamar("api_reservas", { p_token: token, p_dia: dia });
+    if (r && r.erro) { montado = false; return telaEntrar("Este código não é de gerênte."); }
+    reservas = r;
     reps = await chamar("api_representantes", { p_token: token });
-  } catch (e) { msg = "Sem conexão: " + e.message; }
-  desenhar();
+  } catch (e) { toast("Sem conexão com o servidor."); if (!montado) return telaEntrar("Não consegui falar com o servidor. Tente de novo."); }
+  if (!montado) montarTela(); else render();
 }
-function desenhaEntrar(erro) {
+function telaEntrar(erro) {
+  montado = false;
+  const cod = el("input", { id: "cod", placeholder: "código de gerênte", autocomplete: "off", autocapitalize: "none", autocorrect: "off", spellcheck: "false", enterkeyhint: "go" });
+  const ir = () => { const v = cod.value.trim(); if (!v) return; token = v; try { localStorage.setItem("pe-gerente", v); } catch (e) {} carregar(); };
+  cod.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); });
   $("#app").replaceChildren(el("div", { class: "entrar" },
-    el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Reservas"),
-    erro ? el("p", { class: "msg" }, erro) : null,
-    el("input", { id: "cod", placeholder: "código de gerente", autocomplete: "off" }),
-    el("button", { class: "bt forte", onclick: () => { const v = $("#cod").value.trim(); if (!v) return; token = v; try { localStorage.setItem("pe-gerente", v); } catch (e) {} carregar(); } }, "Entrar")));
+    el("div", { class: "marca" }, "Pollo Decor · Gerência"), el("h1", null, "Reservas"),
+    erro ? el("p", { style: "color:var(--ink-2);font-size:13.5px;margin:0" }, erro) : null,
+    cod, el("button", { type: "button", onclick: ir }, "Entrar")));
 }
-function desenhar() {
-  if (!token) return desenhaEntrar();
-  const linhas = (reservas && reservas.linhas) || [];
-  const totalPc = linhas.reduce((a, l) => a + l.qtd, 0);
-  const pedidos = linhas.filter((l) => l.virou_pedido).reduce((a, l) => a + l.qtd, 0);
-  const quantos = new Set(linhas.map((l) => l.representante)).size;
+
+function montarTela() {
+  montado = true;
+  const bx = el("input", { type: "search", id: "busca", placeholder: "Buscar representante, produto ou cor", autocomplete: "off",
+    autocapitalize: "none", autocorrect: "off", spellcheck: "false", enterkeyhint: "search", value: busca });
+  bx.addEventListener("input", () => { busca = bx.value; render(); });
+  const dt = el("input", { type: "date", id: "dia", value: (reservas && reservas.dia) || "" });
+  dt.addEventListener("change", () => { dia = dt.value || null; carregar(); });
   $("#app").replaceChildren(
-    el("div", { class: "topo" }, el("div", { class: "marca" }, "Pollo Decor · Gerência"), el("h1", null, "Reservas dos representantes"),
-      el("div", { class: "sub" }, "Dia ", (reservas && reservas.dia) || "", " · a reserva que não virar pedido cai no fim do dia")),
-    el("main", null,
-      el("div", { class: "placar" },
-        el("div", null, el("div", { class: "rot" }, "Reservado hoje"), el("div", { class: "val" }, fmt(totalPc)), el("div", { class: "sub" }, "peças")),
-        el("div", null, el("div", { class: "rot" }, "Já virou pedido"), el("div", { class: "val" }, fmt(pedidos)), el("div", { class: "sub" }, "peças")),
-        el("div", null, el("div", { class: "rot" }, "Representantes"), el("div", { class: "val" }, fmt(quantos)), el("div", { class: "sub" }, "reservaram hoje")),
-        el("div", null, el("div", { class: "rot" }, "Linhas"), el("div", { class: "val" }, fmt(linhas.length)), el("div", { class: "sub" }, "reservas ativas"))),
-      el("div", { class: "abas" },
-        ...[["reservas", "Reservas do dia"], ["reps", "Representantes"]].map(([v, t]) =>
-          el("button", { role: "tab", "aria-selected": String(aba === v), onclick: () => { aba = v; desenhar(); } }, t))),
-      el("div", { class: "linhaform" },
-        el("label", { for: "dia" }, "Ver outro dia:"),
-        el("input", { type: "date", id: "dia", value: (reservas && reservas.dia) || "", onchange: (e) => { dia = e.target.value || null; carregar(); } }),
-        el("button", { class: "bt", onclick: () => { dia = null; carregar(); } }, "Hoje"),
-        el("button", { class: "bt", onclick: carregar }, "Atualizar"),
-        el("span", { class: "msg" }, msg)),
-      aba === "reservas" ? tabelaReservas(linhas) : tabelaReps()));
+    el("div", { class: "topo" },
+      el("div", { class: "cabeca" },
+        el("div", null, el("div", { class: "marca" }, "Pollo Decor · Gerência"), el("h1", null, "Reservas do dia")),
+        el("div", { class: "diaTxt", id: "diaTxt" })),
+      el("div", { class: "abas", id: "abas" })),
+    el("div", { class: "placar", id: "placar" }),
+    el("div", { class: "ferramentas" }, bx, dt,
+      el("button", { class: "bt", type: "button", onclick: () => { dia = null; dt.value = ""; carregar(); } }, "Hoje"),
+      el("button", { class: "bt", type: "button", onclick: () => carregar() }, "Atualizar")),
+    el("div", { class: "chips", id: "chips" }),
+    el("main", { id: "corpo" }));
+  render();
 }
-function tabelaReservas(linhas) {
-  if (!linhas.length) return el("div", { class: "quadro" }, el("div", { class: "vazio" }, "Nenhuma reserva neste dia."));
-  return el("div", { class: "quadro" }, el("table", null,
-    el("thead", null, el("tr", null, ...["Hora", "Representante", "Região", "Produto", "Cor", "Situação", "Qtd", "Virou pedido"].map((h, i) => el("th", { class: i === 6 ? "num" : null }, h)))),
-    el("tbody", null, linhas.map((l) => el("tr", null,
-      el("td", null, hora(l.quando)),
-      el("td", null, l.representante),
-      el("td", null, l.regiao || "—"),
-      el("td", null, titulo(l.produto)),
-      el("td", null, titulo(l.cor)),
-      el("td", null, el("span", { class: "pill " + (l.em_linha ? "linha" : "fora") }, l.em_linha ? "Em linha" : "Fora de linha"), l.sem_luminaria ? el("span", { class: "pill lum", style: "margin-left:4px" }, "Sem luminária") : null),
-      el("td", { class: "num" }, fmt(l.qtd)),
-      el("td", null, el("button", { class: "bt" + (l.virou_pedido ? " forte" : ""), onclick: async () => { reservas = await chamar("api_virou_pedido", { p_token: token, p_reserva: l.reserva_id, p_valor: !l.virou_pedido }); desenhar(); } }, l.virou_pedido ? "Pedido feito" : "Marcar pedido")))))));
+function linhasDia() { return (reservas && reservas.linhas) || []; }
+
+function render() {
+  const linhas = linhasDia();
+  const pc = linhas.reduce((a, l) => a + l.qtd, 0);
+  const ped = linhas.filter((l) => l.virou_pedido).reduce((a, l) => a + l.qtd, 0);
+  const pessoas = new Set(linhas.map((l) => l.representante)).size;
+  const hoje = new Date().toISOString().slice(0, 10);
+  const oDia = (reservas && reservas.dia) || hoje;
+  $("#diaTxt").replaceChildren(document.createTextNode(oDia === hoje ? "Hoje, " + dataBR(oDia) : dataBR(oDia)),
+    el("br"), document.createTextNode("reserva sem pedido cai às 23h59"));
+  $("#abas").replaceChildren(...[["reservas", "Reservas", linhas.length], ["reps", "Representantes", (reps || []).filter((r) => r.papel === "representante").length]]
+    .map(([v, t, n]) => el("button", { role: "tab", type: "button", "aria-selected": String(aba === v),
+      onclick: () => { aba = v; render(); } }, t, el("b", null, fmt(n)))));
+  $("#placar").replaceChildren(
+    el("div", null, el("div", { class: "rot" }, "Reservado"), el("div", { class: "val" }, fmt(pc)), el("div", { class: "un" }, "peças")),
+    el("div", null, el("div", { class: "rot" }, "Virou pedido"), el("div", { class: "val ped" }, fmt(ped)), el("div", { class: "un" }, "peças")),
+    el("div", null, el("div", { class: "rot" }, "Aguardando"), el("div", { class: "val pend" }, fmt(pc - ped)), el("div", { class: "un" }, "peças · caem hoje")),
+    el("div", null, el("div", { class: "rot" }, "Representantes"), el("div", { class: "val" }, fmt(pessoas)), el("div", { class: "un" }, "reservaram")));
+  if (aba === "reservas") renderReservas(linhas); else renderReps();
 }
-function tabelaReps() {
-  const lista = (reps || []).filter((r) => r.papel === "representante");
-  return el("div", null,
-    el("div", { class: "linhaform", style: "margin-bottom:10px" },
-      el("input", { id: "novoNome", placeholder: "Nome do representante" }),
-      el("input", { id: "novaRegiao", placeholder: "Região" }),
-      el("button", { class: "bt forte", onclick: async () => { const n = $("#novoNome").value.trim(); if (!n) return; reps = await chamar("api_salvar_representante", { p_token: token, p_id: null, p_nome: n, p_regiao: $("#novaRegiao").value.trim(), p_ativo: true }); desenhar(); } }, "Cadastrar")),
-    el("div", { class: "quadro" }, el("table", null,
-      el("thead", null, el("tr", null, ...["Nome", "Região", "Último acesso", "Link pessoal", "Situação", ""].map((h) => el("th", null, h)))),
-      el("tbody", null, lista.length ? lista.map((r) => {
-        const link = LINK_APP + "#t=" + r.token;
-        return el("tr", null,
-          el("td", null, r.nome), el("td", null, r.regiao || "—"),
-          el("td", null, r.ultimo_acesso ? new Date(r.ultimo_acesso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "nunca entrou"),
-          el("td", null, el("button", { class: "bt", onclick: () => { navigator.clipboard.writeText(link); msg = "Link de " + r.nome + " copiado."; desenhar(); } }, "Copiar link"), el("div", { class: "link" }, link)),
-          el("td", null, el("span", { class: "pill " + (r.ativo ? "linha" : "fora") }, r.ativo ? "Ativo" : "Bloqueado")),
-          el("td", null, el("button", { class: "bt", onclick: async () => { reps = await chamar("api_salvar_representante", { p_token: token, p_id: r.id, p_nome: r.nome, p_regiao: r.regiao, p_ativo: !r.ativo }); desenhar(); } }, r.ativo ? "Bloquear" : "Liberar")));
-      }) : el("tr", null, el("td", { colspan: "6" }, el("div", { class: "vazio" }, "Nenhum representante cadastrado ainda.")))))));
+function renderReservas(linhas) {
+  const conta = { tudo: linhas.length, pendentes: linhas.filter((l) => !l.virou_pedido).length, pedidos: linhas.filter((l) => l.virou_pedido).length };
+  $("#chips").replaceChildren(...[["pendentes", "Aguardando pedido"], ["pedidos", "Já viraram pedido"], ["tudo", "Tudo"]]
+    .map(([v, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(filtro === v), onclick: () => { filtro = v; render(); } }, t, el("b", null, fmt(conta[v])))));
+  const termos = semAcento(busca).trim().split(/\s+/).filter(Boolean);
+  const lst = linhas.filter((l) => {
+    if (filtro === "pendentes" && l.virou_pedido) return false;
+    if (filtro === "pedidos" && !l.virou_pedido) return false;
+    if (!termos.length) return true;
+    const alvo = semAcento(l.representante + " " + (l.regiao || "") + " " + l.produto + " " + l.cor);
+    return termos.every((t) => alvo.indexOf(t) >= 0);
+  });
+  const corpo = $("#corpo");
+  if (!lst.length) { corpo.replaceChildren(el("div", { class: "vazio" }, linhas.length ? "Nada nesta seleção." : "Nenhuma reserva neste dia.")); return; }
+  const porPessoa = {};
+  for (const l of lst) (porPessoa[l.representante] = porPessoa[l.representante] || []).push(l);
+  const blocos = Object.keys(porPessoa).sort((a, b) => {
+    const A = porPessoa[a].reduce((s, l) => s + l.qtd, 0), B = porPessoa[b].reduce((s, l) => s + l.qtd, 0);
+    return B - A || a.localeCompare(b);
+  }).map((nome) => {
+    const rr = porPessoa[nome].sort((a, b) => new Date(a.quando) - new Date(b.quando));
+    const tot = rr.reduce((s, l) => s + l.qtd, 0), aguarda = rr.filter((l) => !l.virou_pedido).reduce((s, l) => s + l.qtd, 0);
+    return el("section", { class: "pessoa" },
+      el("div", { class: "pessoaTopo" },
+        el("div", null, el("div", { class: "pessoaNome" }, nome),
+          el("div", { class: "pessoaSub" }, (rr[0].regiao || "sem região") + " · " + rr.length + (rr.length === 1 ? " reserva" : " reservas") + " · desde " + hora(rr[0].quando))),
+        el("div", { class: "pessoaNum" }, fmt(tot) + " pç", el("br"),
+          aguarda ? el("span", { class: "pend" }, fmt(aguarda) + " aguardando") : el("span", { style: "color:var(--ok)" }, "tudo em pedido"))),
+      ...rr.map(resLinha));
+  });
+  corpo.replaceChildren(...blocos);
 }
-if (token) carregar(); else desenhaEntrar();
+function resLinha(l) {
+  const marcar = async () => {
+    if (ocupado) return; ocupado = true;
+    try { reservas = await chamar("api_virou_pedido", { p_token: token, p_reserva: l.reserva_id, p_valor: !l.virou_pedido });
+      toast(l.virou_pedido ? "Voltou para aguardando" : "Marcado como pedido"); }
+    catch (e) { toast("Não consegui gravar agora."); }
+    ocupado = false; render();
+  };
+  return el("div", { class: "res" + (l.virou_pedido ? " feito" : "") },
+    el("div", null,
+      el("div", { class: "resNome" }, titulo(l.produto)),
+      el("div", { class: "resSub" }, titulo(l.cor), el("span", { class: "etq " + (l.em_linha ? "linha" : "fora") }, l.em_linha ? "Em linha" : "Fora de linha"),
+        l.sem_luminaria ? el("span", { class: "etq lum" }, "Sem luminária") : null,
+        el("span", null, hora(l.quando)))),
+    el("div", { class: "direita" },
+      el("div", { class: "qtd" }, el("b", null, fmt(l.qtd)), el("small", null, "pç")),
+      el("button", { class: "bt" + (l.virou_pedido ? " ok" : " forte"), type: "button", onclick: marcar }, l.virou_pedido ? "Pedido ✓" : "Marcar pedido")));
+}
+function renderReps() {
+  $("#chips").replaceChildren();
+  const termos = semAcento(busca).trim().split(/\s+/).filter(Boolean);
+  const lista = (reps || []).filter((r) => r.papel === "representante")
+    .filter((r) => !termos.length || termos.every((t) => semAcento(r.nome + " " + (r.regiao || "")).indexOf(t) >= 0))
+    .sort((a, b) => (b.ativo - a.ativo) || String(a.nome).localeCompare(String(b.nome)));
+  const nome = el("input", { id: "novoNome", placeholder: "Nome do representante", autocomplete: "off" });
+  const regiao = el("input", { id: "novaRegiao", placeholder: "Região", autocomplete: "off" });
+  const cadastrar = async () => {
+    const n = nome.value.trim(); if (!n || ocupado) return; ocupado = true;
+    try { reps = await chamar("api_salvar_representante", { p_token: token, p_id: null, p_nome: n, p_regiao: regiao.value.trim(), p_ativo: true }); toast(n + " cadastrado. Copie o link dele."); }
+    catch (e) { toast("Não consegui cadastrar agora."); }
+    ocupado = false; render();
+  };
+  const blocos = lista.length ? lista.map((r) => {
+    const link = LINK_APP + "#t=" + r.token;
+    const alternar = async () => {
+      if (ocupado) return; ocupado = true;
+      try { reps = await chamar("api_salvar_representante", { p_token: token, p_id: r.id, p_nome: r.nome, p_regiao: r.regiao, p_ativo: !r.ativo });
+        toast(r.ativo ? r.nome + " bloqueado" : r.nome + " liberado"); }
+      catch (e) { toast("Não consegui gravar agora."); }
+      ocupado = false; render();
+    };
+    const copiar = () => { try { navigator.clipboard.writeText(link); toast("Link de " + r.nome + " copiado"); } catch (e) { toast("Copie o link na mão."); } };
+    return el("div", { class: "rep" + (r.ativo ? "" : " bloq") },
+      el("div", null, el("div", { class: "resNome" }, r.nome),
+        el("div", { class: "resSub" }, r.regiao || "sem região",
+          el("span", { class: "etq " + (r.ativo ? "linha" : "fora") }, r.ativo ? "Ativo" : "Bloqueado"),
+          el("span", null, r.ultimo_acesso ? "entrou " + new Date(r.ultimo_acesso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "nunca entrou"))),
+      el("div", { class: "direita" }, el("button", { class: "bt", type: "button", onclick: alternar }, r.ativo ? "Bloquear" : "Liberar")),
+      el("div", { class: "repLink" }, el("button", { class: "bt", type: "button", onclick: copiar }, "Copiar link pessoal"), el("code", null, link)));
+  }) : [el("div", { class: "vazio" }, "Nenhum representante cadastrado ainda.")];
+  $("#corpo").replaceChildren(
+    el("div", { class: "cad" }, nome, regiao, el("button", { class: "bt forte", type: "button", onclick: cadastrar }, "Cadastrar")),
+    ...blocos);
+}
+
+if (token) carregar(); else telaEntrar();
+document.addEventListener("visibilitychange", () => { if (!document.hidden && token && montado && !ocupado) carregar(); });
+setInterval(() => { if (!document.hidden && token && montado && !ocupado) carregar(); }, 90000);
 </script>
 </body>
 </html>
