@@ -112,7 +112,7 @@ function desenhar() {
     const msg = dados && dados.erro === "acesso" ? "Este código de acesso não vale mais. Fale com a fábrica."
       : dados && dados.erro === "sem_publicacao" ? "A fábrica ainda não publicou a pronta entrega de hoje."
       : "Sem conexão agora. Tente de novo em alguns segundos.";
-    app.replaceChildren(...[el("div", { class: "topo" }, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Pronta entrega")),
+    app.replaceChildren(el("div", { class: "topo" }, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Pronta entrega")),
       el("div", { class: "aviso erro" }, msg),
       el("div", { class: "vazio" }, el("button", { class: "chip", onclick: carregar }, "Tentar de novo"),
         dados && dados.erro === "acesso" ? el("button", { class: "chip", style: "margin-left:8px", onclick: () => { try { localStorage.removeItem("pe-token"); } catch (e) {} token = null; desenhar(); } }, "Usar outro código") : null));
@@ -129,7 +129,7 @@ function desenhar() {
     && (!busca || (titulo(i.produto) + " " + i.cor).toLowerCase().includes(busca.toLowerCase())));
   const totalDisp = itens.reduce((a, i) => a + i.disponivel, 0), minhas = itens.reduce((a, i) => a + i.minha_reserva, 0);
 
-  app.replaceChildren(
+  app.replaceChildren(...[
     el("div", { class: "topo" },
       el("div", { class: "marca" }, "Pollo Decor"),
       el("h1", null, "Pronta entrega"),
