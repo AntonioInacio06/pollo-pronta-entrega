@@ -60,16 +60,31 @@ main{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 78px)}
   padding:10px 14px 7px;background:var(--bg);border-bottom:1px solid var(--line-2)}
 .grupo h2{font:700 12px/1 var(--f-disp);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin:0}
 .grupo span{font:600 11.5px var(--f-mono);color:var(--ink-3)}
-.item{display:grid;grid-template-columns:1fr auto;gap:7px 12px;align-items:center;padding:12px 14px;background:var(--surface);border-bottom:1px solid var(--line-2)}
+.item{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"foto texto qtd" "foto acao acao";
+  gap:8px 11px;align-items:start;padding:12px 14px;background:var(--surface);border-bottom:1px solid var(--line-2)}
+.item>.texto{grid-area:texto;min-width:0}
+.item>.qtd{grid-area:qtd}
+.item>.passo{grid-area:acao;justify-self:end}
+.mini{grid-area:foto;width:54px;height:54px;border-radius:8px;object-fit:cover;background:var(--muted);border:1px solid var(--line-2);display:block}
+.mini.vazia{display:flex;align-items:center;justify-content:center;color:var(--ink-3);font:600 9px/1.2 var(--f-disp);letter-spacing:.06em;text-align:center;padding:4px}
+button.mini{padding:0;border:1px solid var(--line-2);overflow:hidden;transition:transform 100ms ease-out}
+button.mini:active{transform:scale(.96)}
+.visor{position:fixed;inset:0;z-index:40;background:rgba(12,14,13,.88);display:flex;flex-direction:column;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 14px);overscroll-behavior:contain}
+.visor img{flex:1;min-height:0;width:100%;object-fit:contain}
+.visorTopo{display:flex;justify-content:flex-end}
+.visorTopo button{width:44px;height:44px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font:600 20px/1 var(--f-mono)}
+.visorPe{color:#F2F3F0;text-align:center;padding-top:10px}
+.visorPe b{display:block;font:600 16px/1.25 var(--f-body)}
+.visorPe span{font-size:12.5px;opacity:.75}
 .item.reservado{background:var(--accent-soft)}
-.nome{font:600 15.5px/1.25 var(--f-body);margin:0 0 4px}
+.nome{font:600 15px/1.25 var(--f-body);margin:0 0 4px}
 .detalhe{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;font-size:12.5px;color:var(--ink-2)}
 .etq{font:600 10px/1 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;padding:4px 6px;border-radius:4px}
 .etq.linha{background:var(--ok-bg);color:var(--ok)}
 .etq.fora{background:var(--surface-2);color:var(--ink-3)}
 .etq.lum{background:var(--warn-bg);color:var(--warn)}
-.direita{display:flex;align-items:center;gap:10px}
-.qtd{text-align:right;min-width:48px}
+.qtd{text-align:right;min-width:46px;padding-top:2px}
 .qtd b{display:block;font:600 22px/1 var(--f-mono);letter-spacing:-.02em}
 .qtd small{font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em}
 .qtd.zero b{color:var(--crit)}
@@ -124,17 +139,21 @@ const titulo = (s) => String(s || "").toLowerCase()
   .replace(/\bLc\b/g, "LC").replace(/\bTv\b/g, "TV");
 const semAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-let token = null, dados = null, filtro = "todos", busca = "", ocupado = false, montado = false;
+let token = null, dados = null, filtro = "todos", busca = "", ocupado = false, montado = false, fotos = {};
 try { token = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("pe-token"); } catch (e) {}
 if (token && location.hash.indexOf("t=") >= 0) { try { localStorage.setItem("pe-token", token); } catch (e) {} history.replaceState(null, "", location.pathname); }
 
 function toast(t) { const d = el("div", { class: "toast" }, t); document.body.append(d); setTimeout(() => d.remove(), 2600); }
 async function chamar(fn, args) { const { data, error } = await sb.rpc(fn, args); if (error) throw error; return data; }
 
+async function carregarFotos() {
+  try { const r = await fetch("fotos.json", { cache: "no-cache" }); if (r.ok) fotos = await r.json(); } catch (e) {}
+}
 async function carregar(silencioso) {
   try { const novo = await chamar("api_estoque", { p_token: token }); if (novo && novo.erro && silencioso) return; dados = novo; }
   catch (e) { if (silencioso) return; dados = { erro: "rede" }; }
   if (!dados || dados.erro) { montado = false; return telaAviso(); }
+  if (!Object.keys(fotos).length) await carregarFotos();
   if (!montado) montarTela(); else { atualizarTopo(); renderLista(); }
 }
 
@@ -199,6 +218,18 @@ function atualizarTopo() {
     el("em", null, hoje ? " · pela fábrica" : " · confirme antes de prometer prazo"));
 }
 
+function verFoto(i, src) {
+  const fechar = () => { visor.remove(); document.removeEventListener("keydown", tecla); };
+  const tecla = (e) => { if (e.key === "Escape") fechar(); };
+  const visor = el("div", { class: "visor", onclick: (e) => { if (e.target === visor) fechar(); } },
+    el("div", { class: "visorTopo" }, el("button", { type: "button", "aria-label": "Fechar", onclick: fechar }, "\u00d7")),
+    el("img", { src: src, alt: titulo(i.produto), decoding: "async" }),
+    el("div", { class: "visorPe" }, el("b", null, titulo(i.produto)),
+      el("span", null, titulo(i.cor) + " \u00b7 " + fmt(i.disponivel) + " livres \u00b7 pre\u00e7o sob consulta")));
+  document.addEventListener("keydown", tecla);
+  document.body.append(visor);
+}
+
 const GRUPOS = ["Home", "Bancada", "Painel", "Módulo", "Estofados", "Mesas e outros"];
 const ordemGrupo = (c) => { const i = GRUPOS.indexOf(c); return i < 0 ? 98 : i; };
 function filtrados() {
@@ -248,19 +279,22 @@ function linha(i) {
     } catch (e) { toast("Sem conexão. Tente de novo."); }
     ocupado = false; renderLista();
   };
+  const src = fotos[i.produto];
   return el("div", { class: "item" + (i.minha_reserva ? " reservado" : "") },
-    el("div", null,
+    src ? el("button", { class: "mini", type: "button", "aria-label": "Ver foto", onclick: () => verFoto(i, src) },
+            el("img", { class: "mini", src: src, loading: "lazy", decoding: "async", width: "58", height: "58", alt: "" }))
+        : el("div", { class: "mini vazia" }, "sem foto"),
+    el("div", { class: "texto" },
       el("p", { class: "nome" }, titulo(i.produto)),
       el("div", { class: "detalhe" }, titulo(i.cor),
         el("span", { class: "etq " + (i.em_linha ? "linha" : "fora") }, i.em_linha ? "Em linha" : "Fora de linha"),
         i.sem_luminaria ? el("span", { class: "etq lum" }, "Sem luminária") : null,
         i.observacao && !i.sem_luminaria ? el("span", { class: "etq lum" }, i.observacao) : null)),
-    el("div", { class: "direita" },
-      el("div", { class: "qtd" + (i.disponivel ? "" : " zero") }, el("b", null, fmt(i.disponivel)), el("small", null, "livres")),
-      el("div", { class: "passo" },
-        el("button", { type: "button", "aria-label": "Tirar uma", disabled: !i.minha_reserva, onclick: () => mudar(-1) }, "−"),
-        el("span", { class: "n" }, fmt(i.minha_reserva)),
-        el("button", { type: "button", "aria-label": "Reservar uma", disabled: i.disponivel <= 0, onclick: () => mudar(1) }, "+"))),
+    el("div", { class: "qtd" + (i.disponivel ? "" : " zero") }, el("b", null, fmt(i.disponivel)), el("small", null, "livres")),
+    el("div", { class: "passo" },
+      el("button", { type: "button", "aria-label": "Tirar uma", disabled: !i.minha_reserva, onclick: () => mudar(-1) }, "−"),
+      el("span", { class: "n" }, fmt(i.minha_reserva)),
+      el("button", { type: "button", "aria-label": "Reservar uma", disabled: i.disponivel <= 0, onclick: () => mudar(1) }, "+")),
     i.minha_reserva ? el("div", { class: "recado" }, "Você reservou " + fmt(i.minha_reserva) + " hoje. Sem pedido até o fim do dia, volta para o estoque.") : null);
 }
 
