@@ -170,11 +170,12 @@ function telaEntrar(msg) {
 function telaAviso() {
   if (dados && dados.erro === "acesso") { try { localStorage.removeItem("pe-token"); } catch (e) {} token = null;
     return telaEntrar("Este código não vale mais. Peça o novo para a fábrica."); }
-  const msg = dados && dados.erro === "sem_publicacao" ? "A fábrica ainda não publicou a pronta entrega. Tente daqui a pouco."
+  const espera = dados && dados.erro === "sem_publicacao";
+  const msg = espera ? "A fábrica ainda não publicou a pronta entrega de hoje. Assim que publicar, o estoque aparece aqui."
     : "Sem conexão agora. Confira a internet e tente de novo.";
   $("#app").replaceChildren(
     el("div", { class: "topo" }, el("div", { class: "cabeca" }, el("div", null, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Pronta entrega")))),
-    el("div", { class: "aviso erro" }, msg),
+    el("div", { class: "aviso" + (espera ? "" : " erro") }, msg),
     el("div", { class: "vazio" }, el("button", { class: "chip", type: "button", onclick: () => carregar() }, "Tentar de novo")));
 }
 
