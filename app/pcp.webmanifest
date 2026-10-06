@@ -1,0 +1,31 @@
+{
+ "name": "Ferramenta do PCP — casamento de volumes e pedidos",
+ "short_name": "Pollo PCP",
+ "lang": "pt-BR",
+ "start_url": "./casamento.html",
+ "scope": "./",
+ "id": "./casamento.html",
+ "display": "standalone",
+ "background_color": "#F2F3F0",
+ "theme_color": "#FFFFFF",
+ "icons": [
+  {
+   "src": "pcp-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "pcp-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "pcp-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
