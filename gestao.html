@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1A1F1E">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="app/gerente-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="app/gerente-192.png">
+<title>Gestão Comercial · Pollo Decor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F2F3F0; --surface:#FFFFFF; --ink:#1C2220; --ink-2:#525C57; --ink-3:#7F8883; --line:#D8DBD4;
+  --accent:#8F5329; --accent-ink:#FFFFFF;
+  --f-disp:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#121615; --surface:#1A1F1E; --ink:#E7EAE6; --ink-2:#A8B0AB; --ink-3:#838C88; --line:#333A37;
+  --accent:#D38D5C; --accent-ink:#1B120D;
+}}
+*{box-sizing:border-box}
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px 16px;background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body)}
+.cartao{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px 24px}
+.marca{font:600 12px/1 var(--f-disp);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+h1{margin:10px 0 8px;font:700 28px/1.1 var(--f-disp)}
+p{margin:0 0 12px;color:var(--ink-2)}
+.botao{display:block;margin-top:20px;padding:14px 18px;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-weight:600;text-align:center;text-decoration:none;touch-action:manipulation}
+.botao:active{opacity:.85}
+.nota{margin:14px 0 0;font-size:13px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<main class="cartao">
+  <div class="marca">Pollo Decor</div>
+  <h1>Gestão Comercial</h1>
+  <p>Metas do mês, desempenho dos representantes, orçamentos, agenda de visitas e viagens.</p>
+  <p>A ferramenta fica hospedada no Claude, onde os dados são guardados.</p>
+  <a class="botao" id="abrir" href="https://claude.ai/artifact/R41KP89q4RFJ6yUgo16eRP" rel="noopener">Abrir a ferramenta</a>
+  <p class="nota">Para gravar metas e cadastros é preciso estar com a conta do Claude aberta.</p>
+</main>
+</body>
+</html>
