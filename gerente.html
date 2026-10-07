@@ -199,6 +199,7 @@ function render() {
     .map(([v, t, n]) => el("button", { role: "tab", type: "button", "aria-selected": String(aba === v),
       onclick: () => { aba = v; render(); } }, t, el("b", null, fmt(n)))),
     el("a", { class: "painel", href: "https://claude.ai/artifact/PNpcpLENX9xw6U8WTZMPnQ", target: "_blank", rel: "noopener" }, "Painel Executivo ↗"),
+    el("a", { class: "painel", href: "https://pollo-catalogo.hugolazevedo.workers.dev/", target: "_blank", rel: "noopener" }, "Catálogo ↗"),
     el("a", { class: "ext", href: "https://claude.ai/artifact/R41KP89q4RFJ6yUgo16eRP", target: "_blank", rel: "noopener" }, "Gestão Comercial ↗"));
   $("#placar").replaceChildren(
     el("div", null, el("div", { class: "rot" }, "Reservado"), el("div", { class: "val" }, fmt(pc)), el("div", { class: "un" }, "peças")),
