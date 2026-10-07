@@ -54,6 +54,8 @@ h1{font:700 20px/1.05 var(--f-disp);margin:3px 0 0}
 .buscaLinha input{flex:1;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--muted)}
 .limpar{padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);font-size:13px;color:var(--ink-2)}
 .limpar:active{background:var(--line)}
+.catalogo{display:flex;align-items:center;padding:0 13px;border:1px solid var(--accent);border-radius:10px;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap}
+.catalogo:active{opacity:.7}
 .chips{display:flex;gap:6px;overflow-x:auto;padding:9px 14px;scrollbar-width:none;touch-action:pan-x}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font:500 13px var(--f-body);color:var(--ink-2);white-space:nowrap;transition:background 120ms ease-out}
@@ -198,7 +200,8 @@ function montarTela() {
         el("div", { class: "euSou", id: "euSou" })),
       el("div", { class: "atualizado", id: "atualizado" }),
       el("div", { class: "buscaLinha" }, bx,
-        el("button", { class: "limpar", type: "button", onclick: () => { bx.value = ""; busca = ""; renderLista(); bx.focus(); } }, "Limpar")),
+        el("button", { class: "limpar", type: "button", onclick: () => { bx.value = ""; busca = ""; renderLista(); bx.focus(); } }, "Limpar"),
+        el("a", { class: "catalogo", href: "https://pollo-catalogo.hugolazevedo.workers.dev/", target: "_blank", rel: "noopener" }, "Catálogo ↗")),
       el("div", { class: "chips", id: "chips" })),
     dados.publicacao && dados.publicacao.observacao ? el("div", { class: "aviso" }, dados.publicacao.observacao) : null,
     el("main", { id: "lista" }),
