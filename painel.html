@@ -184,6 +184,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13.5px}
 .dl b{display:block;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:2px}
 .dl .larga{grid-column:1/-1}
 .tb tr.cg{cursor:pointer} .tb tr.cg:hover td{background:var(--band)} .tb tr.sub td{background:var(--surface-2);font-size:13px}
+.tb tr.sem td{background:var(--band);border-top:2px solid var(--line);padding-top:10px;padding-bottom:10px}
 .tb tfoot td{border-top:2px solid var(--line);font-weight:600}
 .vazioP{padding:36px 20px;text-align:center;color:var(--ink-2)}
 .chip{display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding:3px 4px 3px 10px;border-radius:999px;background:var(--y26-soft);color:var(--ink);font-size:12.5px;font-weight:600;border:0;cursor:pointer}
@@ -553,8 +554,9 @@ function telaClientes(R){
   return [s, el("div", {class:"grid g2e"}, c, p)]; }
 
 function telaCarteira(){
-  var val = {}, hojeN = ANO*10000 + CUT_M*100 + CUT_D;
-  D.i.forEach(function(t){ var o = D.o[t[0]]; if (o[7]) return; if (!((S.rep < 0 || o[1] === S.rep) && (S.uf < 0 || o[2] === S.uf) && (S.cat < 0 || t[1] === S.cat))) return; val[t[0]] = (val[t[0]] || 0) + t[4]; });
+  var val = {}, valAll = {}, hojeN = ANO*10000 + CUT_M*100 + CUT_D, termos = semAc(S.cgCli || "").split(/\s+/).filter(Boolean), okCli = {};
+  function cliOk(c){ if (!termos.length) return true; if (okCli[c] === undefined){ var alvo = semAc(D.clis[c][1] + " " + D.clis[c][0] + " " + D.clis[c][2]); okCli[c] = termos.every(function(w){ return alvo.indexOf(w) >= 0; }); } return okCli[c]; }
+  D.i.forEach(function(t){ var o = D.o[t[0]]; if (!cliOk(o[3])) return; if (!((S.rep < 0 || o[1] === S.rep) && (S.uf < 0 || o[2] === S.uf) && (S.cat < 0 || t[1] === S.cat))) return; valAll[t[0]] = (valAll[t[0]] || 0) + t[4]; if (!o[7]) val[t[0]] = valAll[t[0]]; });
   var cargas = {}, sem = [], tot = 0, tCom = 0, tSem = 0, venc = 0, peds = {};
   Object.keys(val).forEach(function(k){ var oi = +k, o = D.o[oi], v = val[k]; tot += v; peds[o[6]] = 1;
     if (o[9]){ var c = cargas[o[9]] || (cargas[o[9]] = {n:o[9], nome:PED.blocos[o[10]].cn || "", v:0, ords:[], pv:{}}); c.v += v; c.ords.push(oi); if (o[8]) c.pv[o[8]] = (c.pv[o[8]] || 0) + v; tCom += v; }
@@ -565,11 +567,16 @@ function telaCarteira(){
     stat("Com número de carga", brl(tCom), el("span", {text:nf0.format(lc.length) + " cargas programadas"})),
     stat("Sem carga", brl(tSem), el("span", {text:nf0.format(sem.length) + " pedidos só com data de emissão"})),
     stat("Previsão já vencida", brl(venc), el("span", {class:"pill " + (venc ? "warn" : "up"), text:venc ? "carga com previsão antes de " + corte() : "nenhuma carga atrasada"})));
-  var esc = el("p", {class:"scope"}); esc.append(el("b", {text:"Posição em " + dataBR(hojeN)}), " · pedidos ainda sem data de entrega. Esta tela não usa o filtro de período.");
+  var esc = el("p", {class:"scope"}); esc.append(el("b", {text:"Posição em " + dataBR(hojeN)}), " · os quadros de carteira mostram pedidos ainda sem data de entrega. Esta tela não usa o filtro de período.");
+  var inCli = el("input", {type:"search", id:"cgCli", placeholder:"nome, cidade ou código do cliente", autocomplete:"off", spellcheck:"false", value:S.cgCli || ""});
+  inCli.addEventListener("input", function(){ S.cgCli = inCli.value; clearTimeout(S.cgT); S.cgT = setTimeout(function(){ S.cgFoco = true; S.cg = null; render(); }, 350); });
+  var fil = el("div", {class:"filters", style:"padding:0"}, el("div", {class:"sel busca", style:"max-width:420px"}, el("label", {for:"cgCli", text:"Cargas do cliente"}), inCli));
+  if (termos.length){ var nCli = Object.keys(okCli).filter(function(c){ return okCli[c]; }).length, lim = el("button", {type:"button", class:"limpar", text:"Tirar filtro de cliente"}); lim.addEventListener("click", function(){ S.cgCli = ""; S.cg = null; render(); });
+    fil.append(el("span", {class:"scope", text:nCli + (nCli === 1 ? " cliente encontrado" : " clientes encontrados")}), lim); }
   function ordLinhas(lista, comCarga){ return lista.sort(function(a, z){ return D.o[a][0] - D.o[z][0]; }).map(function(oi){ var o = D.o[oi], dias = Math.round((new Date(ANO, CUT_M-1, CUT_D) - new Date(Math.floor(o[0]/10000), Math.floor(o[0]/100) % 100 - 1, o[0] % 100))/864e5);
       return el("tr", {class:comCarga ? "sub" : null}, el("td", {class:"dt num", text:dataBR(o[0])}), el("td", {class:"num"}, pedLk(o[6])),
         el("td", null, lk(D.clis[o[3]][1], function(){ abrir("cli", o[3]); }), el("div", {class:"mut", text:D.reps[o[1]].n + " · " + ufNome(o[2]) + " · " + D.sts[o[5]] + " · há " + dias + (dias === 1 ? " dia" : " dias")})),
-        el("td", {class:"r num", text:brlFull(val[oi])})); }); }
+        el("td", {class:"r num", text:brlFull(valAll[oi])})); }); }
   var cc = card("Previsão de faturamento por carga", "Pedidos que já têm número de carga e ainda não foram faturados. Clique na carga para ver os pedidos.");
   if (!lc.length) cc.append(el("p", {class:"sub", text:"Nenhum pedido em carga para este filtro."}));
   else { var linhas = []; lc.forEach(function(c){ var aberta = S.cg === c.n, atras = c.prev && c.prev < hojeN, np = {}; c.ords.forEach(function(oi){ np[D.o[oi][6]] = 1; });
@@ -590,7 +597,32 @@ function telaCarteira(){
   var sc = card("Sem carga: só data de emissão", "Pedidos vendidos que ainda não entraram em nenhuma carga, do mais antigo para o mais novo");
   if (!sem.length) sc.append(el("p", {class:"sub", text:"Nenhum pedido sem carga para este filtro."}));
   else sc.append(tabela([{t:"Emissão"}, {t:"Pedido"}, {t:"Cliente"}, {t:"Valor", r:1}], ordLinhas(sem, false), 40, "semcarga"));
-  return [esc, k4, el("div", {class:"grid g2"}, cc, cs), sc]; }
+  /* cargas do mês, por semana: faturadas pela data de entrega, as demais pela previsão */
+  var todas = {}; Object.keys(valAll).forEach(function(k){ var oi = +k, o = D.o[oi]; if (!o[9]) return; var c = todas[o[9]] || (todas[o[9]] = {n:o[9], nome:PED.blocos[o[10]].cn || "", vf:0, va:0, df:{}, dp:{}, ords:[]});
+    c.ords.push(oi); if (o[7]){ c.vf += valAll[k]; c.df[o[7]] = (c.df[o[7]] || 0) + valAll[k]; } else { c.va += valAll[k]; if (o[8]) c.dp[o[8]] = (c.dp[o[8]] || 0) + valAll[k]; } });
+  function maior(m){ var ks = Object.keys(m).map(Number).sort(function(a, z){ return m[z] - m[a]; }); return ks[0] || 0; }
+  var lt = Object.keys(todas).map(function(k){ var c = todas[k]; c.data = c.vf > 0 && c.va <= 0.5 ? maior(c.df) : (maior(c.dp) || maior(c.df)); c.sit = c.va <= 0.5 ? "fat" : c.vf > 0.5 ? "parc" : "prev"; return c; }).filter(function(c){ return c.data; });
+  var meses = {}; lt.forEach(function(c){ meses[Math.floor(c.data/100)] = 1; }); var lm = Object.keys(meses).map(Number).sort(function(a, z){ return z - a; }), atual = ANO*100 + CUT_M;
+  if (!S.cgMes || !meses[S.cgMes]) S.cgMes = meses[atual] ? atual : (lm[0] || atual);
+  var selM = el("select", {id:"cgMes", "aria-label":"Mês das cargas"}); lm.forEach(function(m){ selM.append(el("option", {value:m, text:MESL[m % 100 - 1] + " de " + Math.floor(m/100), selected:m === S.cgMes ? "" : null})); });
+  selM.addEventListener("change", function(){ S.cgMes = +selM.value; S.full.cgmes = false; render(); });
+  var cm = card("Cargas do mês por semana", "Carga faturada entra pela data de entrega; carga ainda não faturada entra pela previsão. Clique na carga para ver os pedidos.", el("div", {class:"sel"}, el("label", {for:"cgMes", text:"Mês"}), selM));
+  var doMes = lt.filter(function(c){ return Math.floor(c.data/100) === S.cgMes; }), aM = Math.floor(S.cgMes/100), mM = S.cgMes % 100, ultDia = new Date(aM, mM, 0).getDate(), sems = {}, tf = 0, ta = 0, nf_ = 0, na_ = 0;
+  doMes.forEach(function(c){ var d = new Date(aM, mM - 1, c.data % 100), seg = d.getDate() - ((d.getDay() + 6) % 7), ini = Math.max(1, seg), fim = Math.min(ultDia, seg + 6), x = sems[ini] || (sems[ini] = {ini:ini, fim:fim, cs:[], vf:0, va:0});
+    x.cs.push(c); x.vf += c.vf; x.va += c.va; tf += c.vf; ta += c.va; if (c.sit === "prev") na_++; else nf_++; });
+  if (!doMes.length) cm.append(el("p", {class:"sub", text:"Nenhuma carga neste mês para este filtro."}));
+  else { cm.append(el("div", {class:"facts", style:"margin:0 0 16px;padding-top:0;border-top:0"}, el("div", {class:"fact"}, el("div", {class:"l", text:"Faturado no mês"}), el("div", {class:"v num", text:brl(tf) + " · " + nf_ + (nf_ === 1 ? " carga" : " cargas")})),
+      el("div", {class:"fact"}, el("div", {class:"l", text:"Previsto e ainda não faturado"}), el("div", {class:"v num", text:brl(ta) + " · " + na_ + (na_ === 1 ? " carga" : " cargas")}))));
+    var lw = []; Object.keys(sems).map(Number).sort(function(a, z){ return a - z; }).forEach(function(k){ var x = sems[k];
+      lw.push(el("tr", {class:"sem"}, el("td", {colspan:"3"}, el("b", {text:"Semana de " + dd(x.ini) + "/" + dd(mM) + " a " + dd(x.fim) + "/" + dd(mM)}), " · " + x.cs.length + (x.cs.length === 1 ? " carga" : " cargas") + " · faturado " + brl(x.vf) + " · previsto " + brl(x.va)), el("td", {class:"r num", text:brlFull(x.vf + x.va)})));
+      x.cs.sort(function(a, z){ return a.data - z.data || z.vf + z.va - a.vf - a.va; }).forEach(function(c){ var aberta = S.cg === c.n, np = {}; c.ords.forEach(function(oi){ np[D.o[oi][6]] = 1; });
+        var selo = c.sit === "fat" ? el("span", {class:"pill up", text:"Faturada"}) : c.sit === "parc" ? el("span", {class:"pill warn", text:"Faturada em parte"}) : c.data < hojeN ? el("span", {class:"pill warn", text:"Prevista · vencida"}) : el("span", {class:"pill", text:"Prevista"});
+        var tr = el("tr", {class:"cg", tabindex:"0"}, el("td", {class:"dt num"}, dataBR(c.data).slice(0, 5), el("div", null, selo)), el("td", {class:"num", text:String(c.n)}),
+          el("td", null, tit(c.nome), el("div", {class:"mut", text:nf0.format(Object.keys(np).length) + (Object.keys(np).length === 1 ? " pedido" : " pedidos") + " · " + (aberta ? "fechar" : "ver pedidos")})), el("td", {class:"r num", text:brlFull(c.vf + c.va)}));
+        function alt(){ S.cg = aberta ? null : c.n; render(); } tr.addEventListener("click", alt); tr.addEventListener("keydown", function(ev){ if (ev.key === "Enter") alt(); });
+        lw.push(tr); if (aberta) ordLinhas(c.ords.slice(), true).forEach(function(l){ lw.push(l); }); }); });
+    cm.append(tabela([{t:"Data"}, {t:"Carga"}, {t:"Rota e pedidos"}, {t:"Valor", r:1}], lw, 600, "cgmes")); }
+  return [esc, fil, k4, cm, el("div", {class:"grid g2"}, cc, cs), sc]; }
 
 /* ---------- fichas de cliente e de produto ---------- */
 var det = document.getElementById("det");
@@ -862,7 +894,8 @@ function render(){
   fRep.value = S.rep; fUf.value = S.uf; fCat.value = S.cat; fDe.value = S.a; fAte.value = S.b;
   document.getElementById("limpar").hidden = S.rep < 0 && S.uf < 0 && S.cat < 0 && S.a === 1 && S.b === CUT_M;
   var tela = S.tab === "carteira" ? telaCarteira() : [escopo()].concat({geral:telaGeral, reps:telaReps, regioes:telaRegioes, produtos:telaProdutos, clientes:telaClientes}[S.tab](calcular()));
-  app.replaceChildren.apply(app, tela); if (S.det) renderDet(); }
+  app.replaceChildren.apply(app, tela); if (S.det) renderDet();
+  if (S.cgFoco){ S.cgFoco = false; var n = document.getElementById("cgCli"); if (n){ n.focus(); try { n.setSelectionRange(n.value.length, n.value.length); } catch(e){} } } }
 opcoes(); ligar(); render();
 var rz; addEventListener("resize", function(){ clearTimeout(rz); rz = setTimeout(function(){ redraws.forEach(function(f){ f(); }); }, 120); });
 try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render); new MutationObserver(render).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]}); } catch(e){}
