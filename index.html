@@ -148,6 +148,19 @@ const titulo = (s) => String(s || "").toLowerCase()
   .replace(/\bLc\b/g, "LC").replace(/\bTv\b/g, "TV");
 const semAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
+const fotoCache = {};
+const obsFoto = "IntersectionObserver" in window ? new IntersectionObserver((ents) => { for (const e of ents) if (e.isIntersecting) { obsFoto.unobserve(e.target); carregarFoto(e.target); } }, { rootMargin: "300px" }) : null;
+async function carregarFoto(img) {
+  const p = img.dataset.prod;
+  if (!fotoCache[p]) { try { const r = await sb.rpc("api_foto", { p_token: token, p_produto: p }); if (r.data && r.data.dados) fotoCache[p] = r.data.dados; } catch (e) {} }
+  if (fotoCache[p]) img.src = fotoCache[p];
+}
+function imgNova(p) {
+  const im = el("img", { class: "mini", alt: "", width: "58", height: "58", decoding: "async", "data-prod": p });
+  if (fotoCache[p]) im.src = fotoCache[p]; else if (obsFoto) obsFoto.observe(im); else carregarFoto(im);
+  return im;
+}
+let fotosNovas = {}, fotosNovasOk = false;
 let token = null, dados = null, filtro = "todos", busca = "", ocupado = false, montado = false, fotos = {};
 try { token = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("pe-token"); } catch (e) {}
 if (token && location.hash.indexOf("t=") >= 0) { try { localStorage.setItem("pe-token", token); } catch (e) {} history.replaceState(null, "", location.pathname); }
@@ -163,6 +176,7 @@ async function carregar(silencioso) {
   catch (e) { if (silencioso) return; dados = { erro: "rede" }; }
   if (!dados || dados.erro) { montado = false; return telaAviso(); }
   if (!Object.keys(fotos).length) await carregarFotos();
+  if (!fotosNovasOk) { fotosNovasOk = true; try { const n = await chamar("api_fotos", { p_token: token }); if (n && !n.erro) fotosNovas = n; } catch (e) {} }
   if (!montado) montarTela(); else { atualizarTopo(); renderLista(); }
 }
 
@@ -291,9 +305,10 @@ function linha(i) {
     } catch (e) { toast("Sem conexão. Tente de novo."); }
     ocupado = false; renderLista();
   };
-  const src = fotos[i.produto];
+  const src = fotos[i.produto], nova = fotosNovas[i.produto];
   return el("div", { class: "item" + (i.minha_reserva ? " reservado" : "") },
-    src ? el("button", { class: "mini", type: "button", "aria-label": "Ver foto", onclick: () => verFoto(i, src) },
+    nova ? el("button", { class: "mini", type: "button", "aria-label": "Ver foto", onclick: () => { if (fotoCache[i.produto]) verFoto(i, fotoCache[i.produto]); } }, imgNova(i.produto))
+    : src ? el("button", { class: "mini", type: "button", "aria-label": "Ver foto", onclick: () => verFoto(i, src) },
             el("img", { class: "mini", src: src, loading: "lazy", decoding: "async", width: "58", height: "58", alt: "" }))
         : el("div", { class: "mini vazia" }, "sem foto"),
     el("div", { class: "texto" },

@@ -118,6 +118,7 @@ main{max-width:1100px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom,
 .usoQuando{text-align:right;font:600 13px/1.25 var(--f-mono);white-space:nowrap}
 .usoQuando small{display:block;font:400 11.5px var(--f-body);color:var(--ink-3)}
 .etq.crit{background:var(--crit-bg);color:var(--crit)}
+.etq.neutra{background:var(--accent-soft);color:var(--accent)}
 .diaTit{padding:12px 14px 6px;font:600 12.5px var(--f-mono);color:var(--ink-2);background:var(--bg)}
 .ev{display:grid;grid-template-columns:48px 1fr;gap:10px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line-2)}
 .ev time{font:600 12.5px/1.5 var(--f-mono);color:var(--ink-2)}
@@ -143,6 +144,8 @@ main{max-width:1100px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom,
 .vk strong{display:block;font:600 19px/1.2 var(--f-mono);margin-top:4px}
 .vk small{display:block;font-size:11.5px;color:var(--ink-2);margin-top:3px}
 .vk .sobe{color:var(--ok)} .vk .desce{color:var(--crit)}
+.vdatas{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.vdatas input{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--muted)}
 .vtit{font:700 11.5px var(--f-disp);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:2px 0 -6px}
 .vprod{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(50px,1fr) 148px;gap:4px 12px;align-items:center;font-size:13.5px;padding:6px 0;border-top:1px solid var(--line-2)}
 .vprod:first-of-type{border-top:0}
@@ -155,6 +158,20 @@ main{max-width:1100px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom,
 .vt .n{text-align:right;white-space:nowrap;font-family:var(--f-mono)} .vt th.n{padding-right:0} .vt td.n:last-child{padding-right:0;font-weight:600}
 .vt .d{white-space:nowrap;font:600 12.5px var(--f-mono)} .vt .m{color:var(--ink-3);font-size:12px}
 .vt tr.g td{border-top:1px solid var(--line)}
+.mini{width:58px;height:58px;border-radius:8px;object-fit:cover;background:var(--muted);border:1px solid var(--line-2);display:block}
+.mini.vazia{display:flex;align-items:center;justify-content:center;color:var(--ink-3);font:600 9px/1.2 var(--f-disp);letter-spacing:.06em;text-align:center;padding:4px}
+button.mini{padding:0;overflow:hidden;cursor:zoom-in}
+.peItem{display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;align-items:center;padding:11px 14px;background:var(--surface);border-bottom:1px solid var(--line-2)}
+.peNums{display:flex;gap:14px;text-align:right}
+.peNums div b{display:block;font:600 17px/1 var(--f-mono)} .peNums div small{font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em}
+.peNums .livre b{color:var(--ok)}
+.peAcoes{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.peAcoes .bt{padding:7px 10px;font-size:12.5px}
+.grupoPe{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:14px 14px 7px;font:700 12px/1 var(--f-disp);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.grupoPe span{font:600 11.5px var(--f-mono);letter-spacing:0;color:var(--ink-3)}
+.visor{position:fixed;inset:0;z-index:40;background:rgba(12,14,13,.9);display:grid;place-items:center;padding:20px;cursor:zoom-out}
+.visor img{max-width:100%;max-height:86vh;border-radius:8px}
+.visor b{color:#F2F3F0;font:600 15px var(--f-body);margin-top:10px;display:block;text-align:center}
 .rodapeAud{padding:14px;font-size:12px;color:var(--ink-3);line-height:1.5}
 @media (hover:hover) and (pointer:fine){
   .uso:hover{background:var(--muted)}
@@ -188,22 +205,33 @@ const LINK_APP = location.origin + location.pathname.replace(/gerente(\.html)?$/
 
 const brl = (v) => (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const dataISO = (d) => { const p = String(d || "").split("-"); return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : ""; };
-const vendasCache = {};
+const vendasCache = {}, vendasFiltro = {};
+const chaveV = (cod) => { const f = vendasFiltro[cod] || {}; return cod + "|" + (f.de || "") + "|" + (f.ate || ""); };
 async function buscarVendas(cod, depois) {
-  if (vendasCache[cod] && !vendasCache[cod].falhou) return;
-  vendasCache[cod] = { carregando: true };
-  try { const res = await sb.rpc("api_cliente_vendas", { p_token: token, p_cod: cod }); if (res.error) throw res.error; vendasCache[cod] = res.data || { falhou: true }; }
-  catch (e) { vendasCache[cod] = { falhou: true }; }
+  const k = chaveV(cod), f = vendasFiltro[cod] || {};
+  if (vendasCache[k] && !vendasCache[k].falhou) { depois(); return; }
+  vendasCache[k] = { carregando: true };
+  try { const res = await sb.rpc("api_cliente_vendas", { p_token: token, p_cod: cod, p_de: f.de || null, p_ate: f.ate || null }); if (res.error) throw res.error; vendasCache[k] = res.data || { falhou: true }; }
+  catch (e) { vendasCache[k] = { falhou: true }; }
   depois();
 }
-function blocoVendas(cod) {
-  const v = vendasCache[cod], aviso = (t) => el("div", { style: "font-size:13px;color:var(--ink-3)" }, t);
-  if (!v || v.carregando) return [el("div", { class: "vtit" }, "Compras do cliente"), aviso("Carregando as compras…")];
-  if (v.falhou || v.erro) return [el("div", { class: "vtit" }, "Compras do cliente"), aviso("Não consegui carregar as compras agora.")];
-  if (v.vazio) return [el("div", { class: "vtit" }, "Compras do cliente"), aviso("A fábrica ainda não carregou o histórico de vendas.")];
+function blocoVendas(cod, depois) {
+  const f = vendasFiltro[cod] || {}, comFiltro = !!(f.de || f.ate);
+  const iDe = el("input", { type: "date", id: "vDe" + cod, value: f.de || "", "aria-label": "De" }), iAte = el("input", { type: "date", id: "vAte" + cod, value: f.ate || "", "aria-label": "Até" });
+  const troca = () => { vendasFiltro[cod] = { de: iDe.value, ate: iAte.value }; depois(); buscarVendas(cod, depois); };
+  iDe.addEventListener("change", troca); iAte.addEventListener("change", troca);
+  const datas = el("div", { class: "vdatas" }, el("label", { for: "vDe" + cod }, "Compras de"), iDe, el("label", { for: "vAte" + cod }, "até"), iAte,
+    comFiltro ? el("button", { type: "button", class: "bt", onclick: () => { vendasFiltro[cod] = {}; depois(); buscarVendas(cod, depois); } }, "Todo o período") : null);
+  return [el("div", { class: "vtit" }, "Compras do cliente"), datas, ...blocoVendas2(cod, comFiltro)];
+}
+function blocoVendas2(cod, comFiltro) {
+  const v = vendasCache[chaveV(cod)], aviso = (t) => el("div", { style: "font-size:13px;color:var(--ink-3)" }, t);
+  if (!v || v.carregando) return [aviso("Carregando as compras…")];
+  if (v.falhou || v.erro) return [aviso("Não consegui carregar as compras agora.")];
+  if (v.vazio) return [aviso("A fábrica ainda não carregou o histórico de vendas.")];
   const ate = dataISO(v.corte).slice(0, 5), rodape = "Vendas por emissão, líquidas de cancelamento, até " + dataISO(v.corte) + ".";
-  if (!v.linhas) return [el("div", { class: "vtit" }, "Compras do cliente"), aviso("Nenhuma compra deste cliente desde janeiro de 2025. " + rodape)];
-  const dias = Math.round((new Date(v.corte) - new Date(v.ultima)) / 864e5), dif = v.ano_anterior ? v.ano_atual / v.ano_anterior - 1 : null;
+  if (!v.linhas) return [aviso((comFiltro ? "Nenhuma compra deste cliente nas datas escolhidas. " : "Nenhuma compra deste cliente desde janeiro de 2025. ") + rodape)];
+  const dias = Math.round((new Date(v.corte) - new Date(v.ultima_geral || v.ultima)) / 864e5), dif = v.ano_anterior ? v.ano_atual / v.ano_anterior - 1 : null;
   const varTxt = dif == null ? (v.ano_atual ? "não comprou no mesmo período de " + (v.ano - 1) : "sem compra nos dois anos")
     : (dif >= 0 ? "▲ +" : "▼ −") + Math.abs(dif * 100).toFixed(0) + "% sobre " + (v.ano - 1) + " (" + brl(v.ano_anterior) + ")";
   const max = Math.max(1, ...v.produtos.map((p) => p.valor));
@@ -213,19 +241,114 @@ function blocoVendas(cod) {
       el("td", null, c.produto, c.cor ? el("div", { class: "m" }, c.cor) : null, novo ? el("div", { class: "m" }, c.entrega ? "Faturado em " + dataISO(c.entrega) + (c.carga && c.carga !== "0" ? " · carga " + c.carga : "") + (c.nf && c.nf !== "0" ? " · NF " + c.nf : "")
         : "Em aberto" + (c.carga && c.carga !== "0" ? " · carga " + c.carga + (c.previsao ? " · previsão " + c.previsao.slice(6, 8) + "/" + c.previsao.slice(4, 6) : "") : " · sem carga")) : null),
       el("td", { class: "n" }, fmt(c.qtd)), el("td", { class: "n" }, brl(c.valor))); });
-  return [el("div", { class: "vtit" }, "Compras do cliente"),
+  return [
     el("div", { class: "vk" },
-      el("div", null, el("b", null, "Desde jan/2025"), el("strong", null, brl(v.total)), el("small", null, fmt(v.pedidos) + (v.pedidos === 1 ? " pedido" : " pedidos") + " · primeira em " + dataISO(v.primeira)), el("small", null, "faturado " + brl(v.faturado) + " · em aberto " + brl(v.aberto))),
+      el("div", null, el("b", null, comFiltro ? "Nas datas escolhidas" : "Desde jan/2025"), el("strong", null, brl(v.total)), el("small", null, fmt(v.pedidos) + (v.pedidos === 1 ? " pedido" : " pedidos") + " · primeira em " + dataISO(v.primeira)), el("small", null, "faturado " + brl(v.faturado) + " · em aberto " + brl(v.aberto))),
       el("div", null, el("b", null, v.ano + " até " + ate), el("strong", null, brl(v.ano_atual)), el("small", { class: dif == null ? null : dif >= 0 ? "sobe" : "desce" }, varTxt)),
       el("div", null, el("b", null, "Ticket médio"), el("strong", null, brl(v.pedidos ? v.total / v.pedidos : 0)), el("small", null, "por pedido")),
-      el("div", null, el("b", null, "Última compra"), el("strong", null, dataISO(v.ultima)), el("small", { class: dias > 180 ? "desce" : null }, dias <= 0 ? "no dia do último relatório" : "há " + fmt(dias) + (dias === 1 ? " dia" : " dias")))),
+      el("div", null, el("b", null, "Última compra"), el("strong", null, dataISO(v.ultima_geral || v.ultima)), el("small", { class: dias > 180 ? "desce" : null }, dias <= 0 ? "no dia do último relatório" : "há " + fmt(dias) + (dias === 1 ? " dia" : " dias")))),
     el("div", { class: "vtit" }, "O que mais compra"),
     el("div", null, ...v.produtos.map((p) => el("div", { class: "vprod" }, el("span", null, p.produto), el("span", null, el("i", { style: "width:" + (p.valor / max * 100).toFixed(1) + "%" })), el("span", null, brl(p.valor) + " · " + fmt(p.qtd) + " un.")))),
     el("div", { class: "vtit" }, "Compras por data de emissão"),
     el("div", { class: "vtw" }, el("table", { class: "vt" }, el("thead", null, el("tr", null, el("th", null, "Emissão"), el("th", null, "Pedido"), el("th", null, "Produto, cor e faturamento"), el("th", { class: "n" }, "Qtd."), el("th", { class: "n" }, "Valor"))), el("tbody", null, ...linhas))),
     aviso((v.linhas > v.compras.length ? "Mostrando os " + fmt(v.compras.length) + " itens mais recentes de " + fmt(v.linhas) + ". " : "") + rodape)];
 }
-let cli = { impV: null, d: null, lista: [], busca: "", consultor: "", aberto: null, imp: null, foco: false, t: null };
+const SITS = [["recorrente", "Recorrente", "linha"], ["ativo", "Ativo", "neutra"], ["repescagem", "Repescagem", "lum"], ["inativo", "Inativo", "crit"], ["sem", "Sem compra", "fora"]];
+function seloSit(c, corte) {
+  const s = SITS.find((x) => x[0] === c.sit); if (!s) return null;
+  const dias = c.ultima && corte ? Math.round((new Date(corte) - new Date(c.ultima)) / 864e5) : null;
+  const txt = c.sit === "sem" ? "Sem compra desde 2025" : s[1] + (dias == null ? "" : dias <= 0 ? " · comprou hoje" : c.sit === "recorrente" || c.sit === "ativo" ? " · comprou há " + dias + (dias === 1 ? " dia" : " dias") : " · " + dias + " dias sem comprar");
+  return el("span", { class: "etq " + s[2] }, txt);
+}
+const fotoCache = {};
+const obsFoto = "IntersectionObserver" in window ? new IntersectionObserver((ents) => { for (const e of ents) if (e.isIntersecting) { obsFoto.unobserve(e.target); carregarFoto(e.target); } }, { rootMargin: "300px" }) : null;
+async function carregarFoto(img) {
+  const p = img.dataset.prod;
+  if (!fotoCache[p]) { try { const r = await sb.rpc("api_foto", { p_token: token, p_produto: p }); if (r.data && r.data.dados) fotoCache[p] = r.data.dados; } catch (e) {} }
+  if (fotoCache[p]) img.src = fotoCache[p];
+}
+function imgNova(p) {
+  const im = el("img", { class: "mini", alt: "", width: "58", height: "58", decoding: "async", "data-prod": p });
+  if (fotoCache[p]) im.src = fotoCache[p]; else if (obsFoto) obsFoto.observe(im); else carregarFoto(im);
+  return im;
+}
+let pe = { d: null, fotos: {}, novas: {}, busca: "", filtro: "todos", alvo: null };
+async function carregarPE() {
+  try {
+    const r = await chamar("api_estoque", { p_token: token }); pe.d = r && !r.erro ? r : { erro: (r && r.erro) || "erro" };
+    if (!Object.keys(pe.fotos).length) { try { const f = await fetch("fotos.json", { cache: "no-cache" }); if (f.ok) pe.fotos = await f.json(); } catch (e) {} }
+    const n = await chamar("api_fotos", { p_token: token }); if (n && !n.erro) pe.novas = n;
+  } catch (e) { toast("Não consegui carregar a pronta entrega."); }
+  if (montado && aba === "pe") render();
+}
+function reduzirFoto(arquivo) {
+  return new Promise((ok, falha) => { const url = URL.createObjectURL(arquivo), im = new Image();
+    im.onload = () => { try { let dados = "";
+        for (const [lado, q] of [[900, 0.82], [900, 0.68], [720, 0.62], [560, 0.55]]) { const f = Math.min(1, lado / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(im.naturalWidth * f)); c.height = Math.max(1, Math.round(im.naturalHeight * f));
+          const x = c.getContext("2d"); x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+          dados = c.toDataURL("image/jpeg", q); if (dados.length < 650000) break; }
+        URL.revokeObjectURL(url); dados.length < 700000 ? ok(dados) : falha(new Error("grande")); } catch (e) { falha(e); } };
+    im.onerror = () => { URL.revokeObjectURL(url); falha(new Error("imagem")); }; im.src = url; });
+}
+async function enviarFoto(arquivo) {
+  const p = pe.alvo; if (!p || !arquivo || ocupado) return; ocupado = true;
+  try { const dados = await reduzirFoto(arquivo), r = await chamar("api_salvar_foto", { p_token: token, p_produto: p, p_dados: dados });
+    if (!r || r.erro) throw new Error("erro"); fotoCache[p] = dados; pe.novas[p] = Math.round(Date.now() / 1000); toast("Foto de " + titulo(p) + " gravada. Os representantes já veem."); }
+  catch (e) { toast("Não consegui gravar esta foto. Tente outra imagem (JPG ou PNG)."); }
+  ocupado = false; renderPELista();
+}
+async function tirarFoto(p) {
+  if (ocupado) return; ocupado = true;
+  try { const r = await chamar("api_salvar_foto", { p_token: token, p_produto: p, p_dados: "" }); if (!r || r.erro) throw new Error("erro"); delete pe.novas[p]; delete fotoCache[p]; toast("Foto enviada removida de " + titulo(p)); }
+  catch (e) { toast("Não consegui tirar a foto agora."); }
+  ocupado = false; renderPELista();
+}
+function verFotoG(nome, src) { const v = el("div", { class: "visor", onclick: () => v.remove() }, el("div", null, el("img", { src: src, alt: nome }), el("b", null, nome))); document.body.append(v); }
+function renderPE() {
+  const corpo = $("#corpo"), d = pe.d;
+  if (!d) { corpo.replaceChildren(el("div", { class: "vazio" }, "Carregando a pronta entrega…")); return; }
+  if (d.erro) { corpo.replaceChildren(el("div", { class: "vazio" }, d.erro === "sem_publicacao" ? "A pronta entrega ainda não foi publicada." : "Não consegui carregar a pronta entrega.")); return; }
+  if (!$("#peLista")) {
+    const bx = el("input", { type: "search", id: "peBusca", placeholder: "Buscar produto ou cor", autocomplete: "off", autocapitalize: "none", spellcheck: "false", value: pe.busca });
+    bx.addEventListener("input", () => { pe.busca = bx.value; renderPELista(); });
+    const arq = el("input", { type: "file", id: "peArq", accept: "image/*", hidden: true });
+    arq.addEventListener("change", () => { const f = arq.files && arq.files[0]; arq.value = ""; if (f) enviarFoto(f); });
+    corpo.replaceChildren(el("div", { class: "ferramentas" }, bx, arq), el("div", { class: "chips", id: "peChips" }), el("div", { id: "peLista" }));
+  }
+  renderPELista();
+}
+function renderPELista() {
+  const d = pe.d, itens = (d && d.itens) || [], temFoto = (i) => !!(pe.novas[i.produto] || pe.fotos[i.produto]);
+  const prodsSem = new Set(itens.filter((i) => !temFoto(i)).map((i) => i.produto)).size, prodsNovas = new Set(itens.filter((i) => pe.novas[i.produto]).map((i) => i.produto)).size;
+  $("#peChips").replaceChildren(...[["todos", "Tudo", itens.length], ["sem", "Sem foto", itens.filter((i) => !temFoto(i)).length], ["novas", "Foto enviada pela gerência", itens.filter((i) => pe.novas[i.produto]).length]]
+    .map(([v, t, n]) => el("button", { class: "chip", type: "button", "aria-pressed": String(pe.filtro === v), onclick: () => { pe.filtro = v; renderPELista(); } }, t, el("b", null, fmt(n)))));
+  const termos = semAcento(pe.busca).trim().split(/\s+/).filter(Boolean);
+  const lst = itens.filter((i) => (pe.filtro !== "sem" || !temFoto(i)) && (pe.filtro !== "novas" || pe.novas[i.produto]) && (!termos.length || termos.every((t) => semAcento(i.produto + " " + i.cor + " " + (i.categoria || "")).indexOf(t) >= 0)));
+  const p = d.publicacao || {}, blocos = [el("div", { class: "secao" }, "Pronta entrega publicada", el("span", null, (p.em ? "atualizada em " + quandoBR(p.em) + (p.por ? " por " + p.por : "") + " · " : "") + fmt(itens.length) + " itens · " + fmt(prodsSem) + " produtos sem foto · " + fmt(prodsNovas) + " com foto enviada"))];
+  if (!lst.length) blocos.push(el("div", { class: "vazio" }, "Nada nesta seleção."));
+  const ORD = ["Home", "Bancada", "Painel", "Módulo", "Estofados", "Mesas e outros"], grupos = {};
+  for (const i of lst) (grupos[i.categoria || "Mesas e outros"] = grupos[i.categoria || "Mesas e outros"] || []).push(i);
+  for (const g of Object.keys(grupos).sort((a, b) => (ORD.indexOf(a) < 0 ? 98 : ORD.indexOf(a)) - (ORD.indexOf(b) < 0 ? 98 : ORD.indexOf(b)) || a.localeCompare(b))) {
+    const gi = grupos[g].sort((a, b) => b.disponivel - a.disponivel || String(a.produto).localeCompare(String(b.produto)));
+    blocos.push(el("div", { class: "grupoPe" }, g, el("span", null, fmt(gi.reduce((a, i) => a + i.disponivel, 0)) + " pç livres · " + gi.length + (gi.length === 1 ? " item" : " itens"))));
+    for (const i of gi) { const nova = pe.novas[i.produto], src = pe.fotos[i.produto], nome = titulo(i.produto);
+      const escolher = () => { pe.alvo = i.produto; $("#peArq").click(); };
+      blocos.push(el("div", { class: "peItem" },
+        nova ? el("button", { class: "mini", type: "button", "aria-label": "Ver foto", onclick: () => { if (fotoCache[i.produto]) verFotoG(nome, fotoCache[i.produto]); } }, imgNova(i.produto))
+          : src ? el("button", { class: "mini", type: "button", "aria-label": "Ver foto", onclick: () => verFotoG(nome, src) }, el("img", { class: "mini", src: src, loading: "lazy", decoding: "async", width: "58", height: "58", alt: "" }))
+          : el("div", { class: "mini vazia" }, "sem foto"),
+        el("div", null, el("div", { class: "resNome" }, nome),
+          el("div", { class: "resSub" }, titulo(i.cor), el("span", { class: "etq " + (i.em_linha ? "linha" : "fora") }, i.em_linha ? "Em linha" : "Fora de linha"), i.sem_luminaria ? el("span", { class: "etq lum" }, "Sem luminária") : null,
+            el("span", { class: "etq " + (nova ? "neutra" : src ? "fora" : "crit") }, nova ? "Foto enviada pela gerência" : src ? "Foto do catálogo" : "Sem foto"))),
+        el("div", { class: "peNums" }, el("div", null, el("b", null, fmt(i.qtd)), el("small", null, "estoque")), el("div", null, el("b", null, fmt(i.reservado)), el("small", null, "reserv.")), el("div", { class: "livre" }, el("b", null, fmt(i.disponivel)), el("small", null, "livres"))),
+        el("div", { class: "peAcoes" }, el("button", { class: "bt" + (nova || src ? "" : " forte"), type: "button", onclick: escolher }, nova || src ? "Trocar foto" : "Anexar foto"),
+          nova ? el("button", { class: "bt", type: "button", onclick: () => tirarFoto(i.produto) }, src ? "Voltar à foto do catálogo" : "Tirar a foto enviada") : null,
+          el("span", { style: "font-size:11.5px;color:var(--ink-3)" }, "a foto vale para todas as cores deste produto")))); }
+  }
+  $("#peLista").replaceChildren(...blocos);
+}
+let cli = { situacao: "", impV: null, d: null, lista: [], busca: "", consultor: "", aberto: null, imp: null, foco: false, t: null };
 let aud = null, audF = { de: "", ate: "", usuario: "", acao: "" };
 let token = null, aba = "reservas", filtro = "pendentes", busca = "", reservas = null, reps = null, dia = null, montado = false, ocupado = false;
 try { token = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("pe-gerente"); } catch (e) {}
@@ -241,6 +364,7 @@ async function carregar() {
     reps = await chamar("api_representantes", { p_token: token });
     if (aba === "aud" || !aud) await carregarAud(true);
     if (!cli.d) await carregarCli();
+    if (!pe.d) carregarPE();
   } catch (e) { toast("Sem conexão com o servidor."); if (!montado) return telaEntrar("Não consegui falar com o servidor. Tente de novo."); }
   if (!montado) montarTela(); else render();
 }
@@ -255,7 +379,7 @@ async function carregarAud(quieto) {
 async function carregarCli(mais) {
   try {
     const r = await chamar("api_clientes", { p_token: token, p_busca: cli.busca || null, p_consultor: cli.consultor ? Number(cli.consultor) : null,
-      p_limite: 50, p_pulo: mais ? cli.lista.length : 0 });
+      p_limite: 50, p_pulo: mais ? cli.lista.length : 0, p_situacao: cli.situacao || null });
     if (r && !r.erro) { cli.d = r; cli.lista = mais ? cli.lista.concat(r.clientes || []) : (r.clientes || []); }
   } catch (e) { toast("Não consegui carregar os clientes."); }
   if (montado && aba === "cli") render();
@@ -335,13 +459,13 @@ function render() {
   $("#diaTxt").replaceChildren(document.createTextNode(oDia === hoje ? "Hoje, " + dataBR(oDia) : dataBR(oDia)),
     el("br"), document.createTextNode("reserva sem pedido cai às 23h59"),
     ...(aud && aud.publicacao ? [el("br"), document.createTextNode("Pronta entrega atualizada em " + quandoBR(aud.publicacao.em) + (aud.publicacao.por ? " por " + aud.publicacao.por : ""))] : []));
-  const naAud = aba === "aud" || aba === "cli";
-  $("#tituloTela").textContent = aba === "aud" ? "Auditoria do sistema" : aba === "cli" ? "Clientes" : aba === "reps" ? "Representantes" : "Reservas do dia";
+  const naAud = aba === "aud" || aba === "cli" || aba === "pe";
+  $("#tituloTela").textContent = aba === "aud" ? "Auditoria do sistema" : aba === "cli" ? "Clientes" : aba === "pe" ? "Pronta entrega" : aba === "reps" ? "Representantes" : "Reservas do dia";
   $("#placar").hidden = naAud; $("#ferramentas").hidden = naAud; $("#chips").hidden = naAud;
-  $("#abas").replaceChildren(...[["reservas", "Reservas", linhas.length], ["reps", "Representantes", (reps || []).filter((r) => r.papel === "representante").length]]
+  $("#abas").replaceChildren(...[["reservas", "Reservas", linhas.length], ["pe", "Pronta entrega", pe.d && pe.d.itens ? pe.d.itens.length : 0], ["reps", "Representantes", (reps || []).filter((r) => r.papel === "representante").length]]
     .concat([["cli", "Clientes", cli.d ? cli.d.base : 0], ["aud", "Auditoria", aud ? aud.total : 0]])
     .map(([v, t, n]) => el("button", { role: "tab", type: "button", "aria-selected": String(aba === v),
-      onclick: () => { aba = v; render(); if (v === "aud") carregarAud(); if (v === "cli") carregarCli(); } }, t, el("b", null, fmt(n)))),
+      onclick: () => { aba = v; render(); if (v === "aud") carregarAud(); if (v === "cli") carregarCli(); if (v === "pe") carregarPE(); } }, t, el("b", null, fmt(n)))),
     el("a", { class: "painel", href: "painel.html" }, "Painel Executivo"),
     el("a", { class: "painel", href: "catalogo.html?de=gerente" }, "Catálogo"),
     el("a", { class: "ext", href: "https://claude.ai/artifact/R41KP89q4RFJ6yUgo16eRP", target: "_blank", rel: "noopener" }, "Gestão Comercial ↗"));
@@ -350,7 +474,7 @@ function render() {
     el("div", null, el("div", { class: "rot" }, "Virou pedido"), el("div", { class: "val ped" }, fmt(ped)), el("div", { class: "un" }, "peças")),
     el("div", null, el("div", { class: "rot" }, "Aguardando"), el("div", { class: "val pend" }, fmt(pc - ped)), el("div", { class: "un" }, "peças · caem hoje")),
     el("div", null, el("div", { class: "rot" }, "Representantes"), el("div", { class: "val" }, fmt(pessoas)), el("div", { class: "un" }, "reservaram")));
-  if (aba === "reservas") renderReservas(linhas); else if (aba === "reps") renderReps(); else if (aba === "cli") renderCli(); else renderAud();
+  if (aba === "reservas") renderReservas(linhas); else if (aba === "reps") renderReps(); else if (aba === "cli") renderCli(); else if (aba === "pe") renderPE(); else renderAud();
 }
 function renderCli() {
   const corpo = $("#corpo"), d = cli.d;
@@ -377,12 +501,15 @@ function renderCli() {
     ...(d.consultores || []).map((c) => el("option", { value: c.cod, selected: String(cli.consultor) === String(c.cod) ? true : null }, c.cod + " · " + titulo(c.nome) + " (" + fmt(c.n) + ")")));
   sel.addEventListener("change", () => { cli.consultor = sel.value; cli.aberto = null; carregarCli(); });
   blocos.push(el("div", { class: "ferramentas" }, bx, sel));
+  const st = d.situacoes || {}, todosN = Object.values(st).reduce((a, n) => a + n, 0);
+  blocos.push(el("div", { class: "chips" }, el("button", { class: "chip", type: "button", "aria-pressed": String(!cli.situacao), onclick: () => { cli.situacao = ""; cli.aberto = null; carregarCli(); } }, "Todos", el("b", null, fmt(todosN))),
+    ...SITS.filter((x) => st[x[0]]).map((x) => el("button", { class: "chip", type: "button", "aria-pressed": String(cli.situacao === x[0]), onclick: () => { cli.situacao = cli.situacao === x[0] ? "" : x[0]; cli.aberto = null; carregarCli(); } }, x[1], el("b", null, fmt(st[x[0]]))))));
   blocos.push(el("div", { class: "secao" }, "Clientes", el("span", null, fmt(d.total) + (d.total === 1 ? " encontrado" : " encontrados") + " · toque para abrir a ficha")));
   for (const c of cli.lista) {
     const aberto = cli.aberto === c.cod, i = c.info || {}, dono = (c.cons || []).map((x) => titulo(x.nome) + " (" + x.cod + ")").join(", ") || "sem representante";
-    blocos.push(el("button", { class: "cli", type: "button", "aria-expanded": String(aberto), onclick: () => { cli.aberto = aberto ? null : c.cod; render(); if (cli.aberto) buscarVendas(c.cod, () => { if (cli.aberto === c.cod && aba === "cli" && !/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "")) render(); }); } },
+    blocos.push(el("button", { class: "cli", type: "button", "aria-expanded": String(aberto), onclick: () => { cli.aberto = aberto ? null : c.cod; render(); if (cli.aberto) buscarVendas(c.cod, () => { if (cli.aberto === c.cod && aba === "cli" && (!/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "") || /^v(De|Ate)/.test((document.activeElement || {}).id || ""))) render(); }); } },
       el("div", null, el("div", { class: "resNome" }, titulo(c.razao)),
-        el("div", { class: "resSub" }, [titulo(c.cidade), c.uf].filter(Boolean).join(" · "), el("span", null, "cód. " + c.cod),
+        el("div", { class: "resSub" }, [titulo(c.cidade), c.uf].filter(Boolean).join(" · "), el("span", null, "cód. " + c.cod), seloSit(c, d.corte), c.editado ? el("span", { class: "etq fora" }, "Dados alterados") : null,
           i.expostos ? el("span", { class: "etq linha" }, "Tem exposição") : null, i.descontos ? el("span", { class: "etq lum" }, "Tem desconto") : null,
           i.rep_cod ? el("span", { class: "etq fora" }, "Representante trocado") : null)),
       el("div", { class: "cliDir" }, dono)));
@@ -405,24 +532,28 @@ function fichaCli(c) {
   const fExp = el("textarea", { id: "fEx" + c.cod, placeholder: "Um produto por linha. Ex.: Home Pinifarina Plus 3000 - Cinamomo" }, i.expostos || "");
   const fDes = el("textarea", { id: "fDe" + c.cod, placeholder: "Ex.: 5% na tabela MG/RJ até dezembro, aprovado pelo Inácio" }, i.descontos || "");
   const fObs = el("textarea", { id: "fOb" + c.cod, placeholder: "Anotações sobre o cliente" }, i.obs || "");
+  const CAMPOS = [["razao", "Razão social"], ["fantasia", "Fantasia"], ["doc", "CNPJ / CPF"], ["ie", "Inscrição"], ["telefone", "Telefone"], ["email", "E-mail"], ["contato", "Contato"],
+    ["endereco", "Endereço"], ["bairro", "Bairro"], ["cidade", "Cidade"], ["uf", "UF"], ["cep", "CEP"], ["regiao", "Região"]];
+  const eds = {}; for (const [k] of CAMPOS) eds[k] = el("input", { id: "ed_" + k + c.cod, value: c[k] || "", autocomplete: "off" });
   const gravar = async () => {
     if (ocupado) return; ocupado = true;
-    try { const r = await chamar("api_salvar_cliente", { p_token: token, p_cod: c.cod, p_dados: { contato: fContato.value.trim(), telefone: fTel.value.trim(), email: fMail.value.trim(),
+    const edicao = {}; for (const [k] of CAMPOS) edicao[k] = eds[k].value.trim();
+    try { const r = await chamar("api_salvar_cliente", { p_token: token, p_cod: c.cod, p_dados: { edicao: edicao, contato: fContato.value.trim(), telefone: fTel.value.trim(), email: fMail.value.trim(),
         expostos: fExp.value.trim(), descontos: fDes.value.trim(), obs: fObs.value.trim(), rep_cod: Number(sRep.value) || 0 } });
       if (!r || r.erro) throw new Error("erro"); toast("Ficha de " + titulo(c.razao) + " gravada"); ocupado = false; const ab = c.cod; await carregarCli(); cli.aberto = ab; render(); return; }
     catch (e) { toast("Não consegui gravar agora."); }
     ocupado = false;
   };
   return el("div", { class: "ficha" },
-    el("div", { class: "fichaDados" }, dado("Fantasia", titulo(c.fantasia)), dado("CNPJ / CPF", c.doc), dado("Inscrição", c.ie), dado("Telefone (ERP)", c.telefone), dado("E-mail (ERP)", c.email),
-      dado("Contato (ERP)", titulo(c.contato)), dado("Endereço", [titulo(c.endereco), titulo(c.bairro)].filter(Boolean).join(" · ")), dado("Cidade", [titulo(c.cidade), c.uf, c.cep].filter(Boolean).join(" · ")),
-      dado("Região", titulo(c.regiao)), dado("Cliente desde", c.cadastro)),
+    el("div", { class: "vtit" }, "Dados do cliente" + (c.editado ? " (com alterações do gerente)" : "")),
+    el("div", { class: "campos" }, ...CAMPOS.map(([k, rot]) => campo("ed_" + k + c.cod, rot, eds[k]))),
+    el("div", { style: "font-size:12px;color:var(--ink-3);margin-top:-6px" }, "O que você mudar aqui vale por cima do ERP, inclusive nas próximas importações. Para desfazer, volte o campo ao valor do ERP." + (c.cadastro ? " Cliente desde " + c.cadastro + "." : "")),
     campo("fRep" + c.cod, "Representante que atende este cliente", sRep),
-    el("div", { class: "campos" }, campo("fCt" + c.cod, "Contato na loja", fContato), campo("fTl" + c.cod, "Telefone / WhatsApp", fTel), campo("fEm" + c.cod, "E-mail", fMail)),
+    el("div", { class: "campos" }, campo("fCt" + c.cod, "Outro contato na loja", fContato), campo("fTl" + c.cod, "WhatsApp ou outro telefone", fTel), campo("fEm" + c.cod, "Outro e-mail", fMail)),
     campo("fEx" + c.cod, "Produtos expostos na loja", fExp), campo("fDe" + c.cod, "Descontos concedidos (só gerentes veem)", fDes), campo("fOb" + c.cod, "Observações", fObs),
     el("div", { class: "direita" }, el("button", { class: "bt forte", type: "button", onclick: gravar }, "Gravar ficha"),
       el("span", { style: "font-size:12px;color:var(--ink-3)" }, i.em ? "Última alteração em " + quandoBR(i.em) + " por " + (i.por || "?") : "Ficha ainda não preenchida")),
-    ...blocoVendas(c.cod));
+    ...blocoVendas(c.cod, () => { if (cli.aberto === c.cod && aba === "cli") render(); }));
 }
 const quandoBR = (t) => new Date(t).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", " às");
 function haQuanto(t, agora) {
@@ -438,7 +569,8 @@ function descreve(e) {
   if (e.acao === "importou clientes") return fmt(d.clientes) + " clientes" + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
   if (e.acao === "importou vendas") return fmt(d.linhas) + " pedidos, emitidos de " + dataBR(d.de) + " a " + dataBR(d.ate) + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
   if (e.acao === "viu vendas do cliente") return (d.cliente || "") + " · cód. " + d.cod;
-  if (e.acao === "atualizou cliente") return (d.cliente || "") + " · cód. " + d.cod;
+  if (e.acao === "atualizou cliente") return (d.cliente || "") + " · cód. " + d.cod + (d.campos && d.campos.length ? " · alterou " + d.campos.join(", ") : "");
+  if (e.acao === "trocou foto de produto" || e.acao === "tirou foto de produto") return titulo(d.produto || "");
   if (e.acao === "trocou representante do cliente") return (d.cliente || "") + " · passou para " + (d.para ? (d.para_nome || "código " + d.para) + " (" + d.para + ")" : "o representante do ERP");
   if (e.acao === "reservou") return item() + (d.antes ? " (tinha " + pc(d.antes) + ")" : "");
   if (e.acao === "cancelou reserva") return item();

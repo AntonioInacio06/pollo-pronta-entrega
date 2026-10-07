@@ -189,6 +189,15 @@ table.tb{width:100%;border-collapse:collapse;font-size:13.5px}
 .dl b{display:block;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:2px}
 .dl .larga{grid-column:1/-1}
 .tb tr.cg{cursor:pointer} .tb tr.cg:hover td{background:var(--band)} .tb tr.sub td{background:var(--surface-2);font-size:13px}
+.kpi.kbtn{cursor:pointer;text-align:left;background:none;border:0;border-left:1px solid var(--line-2);font:inherit;color:inherit;display:block;width:100%}
+.kpi.kbtn:first-child{border-left:0}
+.kpi.kbtn[aria-pressed="true"]{background:var(--band);box-shadow:inset 0 -3px 0 var(--ink)}
+.kpi.kbtn:hover{background:var(--band)}
+.ponto{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:baseline}
+.emp{display:flex;height:16px;gap:2px;border-radius:4px;overflow:hidden}
+.emp button{border:0;padding:0;min-width:3px;cursor:pointer}
+.emp button:hover{filter:brightness(1.12)}
+.row.re{grid-template-columns:minmax(120px,1fr) minmax(120px,2.2fr) 70px}
 .tb tr.sem td{background:var(--band);border-top:2px solid var(--line);padding-top:10px;padding-bottom:10px}
 .tb tfoot td{border-top:2px solid var(--line);font-weight:600}
 .vazioP{padding:36px 20px;text-align:center;color:var(--ink-2)}
@@ -229,7 +238,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13.5px}
       <button type="button" class="limpar" id="limpar" hidden>Limpar filtros</button>
     </div>
     <div class="tabs" id="tabs" role="tablist">
-      <button type="button" role="tab" data-t="geral">Visão geral</button><button type="button" role="tab" data-t="reps">Representantes</button><button type="button" role="tab" data-t="regioes">Regiões</button><button type="button" role="tab" data-t="produtos">Produtos</button><button type="button" role="tab" data-t="clientes">Clientes</button><button type="button" role="tab" data-t="carteira">Carteira e cargas</button>
+      <button type="button" role="tab" data-t="geral">Visão geral</button><button type="button" role="tab" data-t="reps">Representantes</button><button type="button" role="tab" data-t="regioes">Regiões</button><button type="button" role="tab" data-t="produtos">Produtos</button><button type="button" role="tab" data-t="clientes">Clientes</button><button type="button" role="tab" data-t="carteira">Carteira e cargas</button><button type="button" role="tab" data-t="atividade">Atividade de clientes</button>
     </div>
   </div>
 </div>
@@ -285,7 +294,7 @@ function FAT(){ return S.modo === "fat"; }
 function DT(o){ return FAT() ? o[7] : o[0]; }          /* data-base: emissão (venda) ou data de entrega (faturamento) */
 function PAL(){ return FAT() ? "Faturamento" : "Vendas"; }
 function perNome(){ var f = S.b === CUT_M && PARCIAL ? " (até dia " + CUT_D + ")" : ""; return S.a === S.b ? MESL[S.a-1] + f : MESL[S.a-1] + " a " + MESL[S.b-1].toLowerCase() + f; }
-try { var h = location.hash.slice(1); if (["geral","reps","regioes","produtos","clientes","carteira"].indexOf(h) >= 0) S.tab = h; } catch(e){}
+try { var h = location.hash.slice(1); if (["geral","reps","regioes","produtos","clientes","carteira","atividade"].indexOf(h) >= 0) S.tab = h; } catch(e){}
 
 /* ---------- utilidades ---------- */
 function el(tag, attrs){ var e = document.createElement(tag), i, k;
@@ -647,6 +656,70 @@ function telaCarteira(){
     cm.append(tabela([{t:"Data"}, {t:"Carga"}, {t:"Rota e pedidos"}, {t:"Valor", r:1}], lw, 600, "cgmes")); }
   return [esc, fil, k4, cm, el("div", {class:"grid g2"}, cc, cs), sc]; }
 
+/* ---------- atividade e inatividade de clientes ---------- */
+var CLS = [{k:"rec", n:"Recorrente", d:"comprou nos últimos 45 dias", cor:"--good", pill:"up"}, {k:"ati", n:"Ativo", d:"última compra entre 46 e 90 dias", cor:"--fat", pill:""},
+  {k:"rep", n:"Repescagem", d:"última compra entre 91 e 180 dias", cor:"--y25", pill:"warn"}, {k:"ina", n:"Inativo", d:"181 dias ou mais sem comprar", cor:"--bad", pill:"down"}];
+function clsDe(dias){ return dias <= 45 ? "rec" : dias <= 90 ? "ati" : dias <= 180 ? "rep" : "ina"; }
+function telaAtividade(){
+  var A = S.atv || (S.atv = {cls:null, ord:"dias"}), hoje = new Date(ANO, CUT_M - 1, CUT_D), lim12 = (ANO - 1)*10000 + CUT_M*100 + CUT_D, M = {};
+  D.o.forEach(function(o){ var x = M[o[3]] || (M[o[3]] = {c:o[3], ult:0, v12:0, p12:{}, r:o[1], u:o[2]}); if (o[0] >= x.ult){ x.ult = o[0]; x.r = o[1]; x.u = o[2]; } if (o[0] > lim12){ x.v12 += o[4]; x.p12[o[6]] = 1; } });
+  var L = Object.keys(M).map(function(k){ return M[k]; }).filter(function(x){ return (S.rep < 0 || x.r === S.rep) && (S.uf < 0 || x.u === S.uf); });
+  var G = {}; CLS.forEach(function(c){ G[c.k] = {n:0, v:0}; }); var buckets = []; for (var i = 0; i < 25; i++) buckets.push({n:0, v:0}); var porRep = {};
+  L.forEach(function(x){ x.dias = Math.max(0, Math.round((hoje - new Date(Math.floor(x.ult/10000), Math.floor(x.ult/100) % 100 - 1, x.ult % 100))/864e5)); x.cls = clsDe(x.dias); x.np = Object.keys(x.p12).length;
+    G[x.cls].n++; G[x.cls].v += x.v12; var b = buckets[Math.min(24, Math.max(0, Math.ceil(x.dias/15) - 1))]; b.n++; b.v += x.v12;
+    var pr = porRep[x.r] || (porRep[x.r] = {r:x.r, t:0, rec:0, ati:0, rep:0, ina:0}); pr.t++; pr[x.cls]++; });
+  var tot = L.length, esc = el("p", {class:"scope"});
+  esc.append(el("b", {text:"Posição em " + dataBR(ANO*10000 + CUT_M*100 + CUT_D)}), " · situação de cada cliente pelo tempo desde a última compra (data de emissão). Vale para os filtros de representante e estado; o representante é o do último pedido do cliente.");
+  if (!tot) return [esc, el("section", {class:"card"}, el("div", {class:"vazioP", text:"Nenhum cliente com compra para este filtro."}))];
+  function marca(k){ A.cls = A.cls === k ? null : k; S.full.atv = false; render(); }
+  var k4 = el("div", {class:"kpis"}); CLS.forEach(function(c){ var g = G[c.k], b = el("button", {type:"button", class:"kpi kbtn", "aria-pressed":String(A.cls === c.k)},
+      el("div", {class:"l"}, el("span", {class:"ponto", style:"background:var(" + c.cor + ")"}), c.n), el("div", {class:"v num", text:nf0.format(g.n)}),
+      el("div", {class:"c"}, el("span", {class:"pill " + c.pill, text:pct(g.n/tot, 1) + " dos clientes"}), el("span", {text:c.d})), el("div", {class:"c", text:"compraram " + brl(g.v) + " em 12 meses"}));
+    b.addEventListener("click", function(){ marca(c.k); }); k4.append(b); });
+  /* histograma: dias desde a última compra */
+  var hc = card("Há quantos dias cada cliente não compra", "Cada barra são 15 dias. Clique em uma barra para listar os clientes daquela situação.", el("div", {class:"legend"}, CLS.map(function(c){ return el("span", null, el("i", {class:"box", style:"background:var(" + c.cor + ")"}), c.n); })));
+  var hbox = el("div", {class:"chart"});
+  function hdraw(){ var W = Math.max(300, hbox.clientWidth), H = W < 520 ? 220 : 260, mL = 38, mR = 12, mT = 26, mB = 30, mx = Math.max.apply(null, buckets.map(function(b){ return b.n; }).concat([1]));
+    var passo = Math.pow(10, Math.floor(Math.log10(mx))); [0.5, 1, 2, 2.5, 5].some(function(f){ if (mx/(passo*f) <= 5){ passo *= f; return true; } }); passo = Math.max(1, Math.round(passo));
+    var top = Math.ceil(mx/passo)*passo, bw = (W - mL - mR)/25, y = function(v){ return mT + (H - mT - mB)*(1 - v/top); }, s = svg("svg", {viewBox:"0 0 " + W + " " + H, role:"img", "aria-label":"Clientes por dias desde a última compra"});
+    for (var t = 0; t <= top; t += passo){ s.append(svg("line", {x1:mL, x2:W - mR, y1:y(t), y2:y(t), stroke:cssv("--line-2"), "stroke-width":1})); var tx = svg("text", {x:mL - 6, y:y(t) + 4, "text-anchor":"end"}); tx.textContent = nf0.format(t); s.append(tx); }
+    [[0,"hoje"],[3,"45 dias"],[6,"90"],[12,"180"],[24,"360"]].forEach(function(m){ var tx = svg("text", {x:mL + bw*m[0], y:H - 9, "text-anchor":m[0] ? "middle" : "start"}); tx.textContent = m[1]; s.append(tx);
+      if (m[0] && m[0] < 24) s.append(svg("line", {x1:mL + bw*m[0], x2:mL + bw*m[0], y1:mT - 8, y2:H - mB, stroke:cssv("--ink-3"), "stroke-width":1, "stroke-dasharray":"3 4"})); });
+    buckets.forEach(function(b, i){ var cls = CLS[i <= 2 ? 0 : i <= 5 ? 1 : i <= 11 ? 2 : 3], h = Math.max(b.n ? 2 : 0, y(0) - y(b.n)), x0 = mL + bw*i + 1;
+      var r = svg("rect", {x:x0, y:y(0) - h, width:Math.max(2, bw - 2), height:h, rx:Math.min(4, bw/3), fill:cssv(cls.cor), opacity:A.cls && A.cls !== cls.k ? 0.3 : 1});
+      var alvo = svg("rect", {x:mL + bw*i, y:mT, width:bw, height:H - mT - mB, fill:"transparent", style:"cursor:pointer"});
+      alvo.addEventListener("pointermove", function(ev){ showTip(ev, i === 24 ? "Mais de 360 dias" : (i*15 + (i ? 1 : 0)) + " a " + (i + 1)*15 + " dias", [{c:cssv(cls.cor), k:cls.n, v:nf0.format(b.n) + (b.n === 1 ? " cliente" : " clientes")}, {k:"Compraram em 12 meses", v:brlFull(b.v)}, {k:"Clique para listar", v:""}]); });
+      alvo.addEventListener("pointerleave", hideTip); alvo.addEventListener("click", function(){ marca(cls.k); }); s.append(r, alvo); });
+    hbox.replaceChildren(s); }
+  requestAnimationFrame(hdraw); redraws.push(hdraw); hc.append(hbox);
+  /* por representante */
+  var rc = card("Situação da carteira por representante", "Cada barra é 100% dos clientes do representante. Clique em um trecho para ver aqueles clientes.", el("div", {class:"legend"}, CLS.map(function(c){ return el("span", null, el("i", {class:"box", style:"background:var(" + c.cor + ")"}), c.n); })));
+  var rows = el("div", {class:"rows"}); rows.append(el("div", {class:"row re h"}, el("div", {text:"Representante"}), el("div", {text:"Recorrente · ativo · repescagem · inativo"}), el("div", {class:"val", text:"Clientes"})));
+  Object.keys(porRep).map(function(k){ return porRep[k]; }).sort(function(a, z){ return z.t - a.t; }).slice(0, S.full.atvrep ? 99 : 14).forEach(function(p){ var barra = el("div", {class:"emp"});
+    CLS.forEach(function(c){ if (!p[c.k]) return; var b = el("button", {type:"button", style:"flex:" + p[c.k] + " 1 0;background:var(" + c.cor + ")", "aria-label":D.reps[p.r].n + ": " + p[c.k] + " " + c.n});
+      b.addEventListener("pointermove", function(ev){ showTip(ev, D.reps[p.r].n, CLS.map(function(k){ return {c:cssv(k.cor), k:k.n, v:nf0.format(p[k.k]) + " · " + pct(p[k.k]/p.t)}; }).concat([{k:"Clique para ver: " + c.n.toLowerCase(), v:""}])); });
+      b.addEventListener("pointerleave", hideTip); b.addEventListener("click", function(){ S.rep = p.r; A.cls = c.k; S.full.atv = false; render(); }); barra.append(b); });
+    rows.append(el("div", {class:"row re"}, el("div", {class:"n"}, el("div", {class:"t", text:D.reps[p.r].n}), el("div", {class:"s", text:pct((p.rec + p.ati)/p.t) + " recorrentes ou ativos"})), barra, el("div", {class:"val num", text:nf0.format(p.t)}))); });
+  rc.append(rows);
+  if (Object.keys(porRep).length > 14 && !S.full.atvrep){ var mb = el("button", {type:"button", class:"more", text:"Mostrar todos (" + Object.keys(porRep).length + ")"}); mb.addEventListener("click", function(){ S.full.atvrep = true; render(); }); rc.append(mb); }
+  /* lista */
+  var sel = A.cls ? CLS.filter(function(c){ return c.k === A.cls; })[0] : null, lista = L.filter(function(x){ return !A.cls || x.cls === A.cls; });
+  lista.sort(A.ord === "valor" ? function(a, z){ return z.v12 - a.v12 || a.dias - z.dias; } : A.ord === "recente" ? function(a, z){ return a.dias - z.dias || z.v12 - a.v12; } : function(a, z){ return z.dias - a.dias || z.v12 - a.v12; });
+  var sg = el("div", {class:"seg", role:"group", "aria-label":"Ordenar"}); [["dias","Há mais tempo sem comprar"],["valor","Maior compra em 12 meses"],["recente","Compra mais recente"]].forEach(function(m){ var b = el("button", {type:"button", "aria-pressed":String(A.ord === m[0]), text:m[1]}); b.addEventListener("click", function(){ A.ord = m[0]; render(); }); sg.append(b); });
+  var lc = card(sel ? "Clientes: " + sel.n.toLowerCase() : "Todos os clientes", (sel ? sel.d.charAt(0).toUpperCase() + sel.d.slice(1) + " · " : "") + nf0.format(lista.length) + " clientes · " + brl(lista.reduce(function(s2, x){ return s2 + x.v12; }, 0)) + " comprados em 12 meses. Clique no nome para abrir a ficha.");
+  lc.append(el("div", {class:"ord"}, "Ordenar por", sg));
+  if (sel){ var tir = el("button", {type:"button", class:"limpar", text:"Mostrar todas as situações"}); tir.addEventListener("click", function(){ A.cls = null; render(); }); lc.querySelector(".ord").append(tir); }
+  var linhas = lista.map(function(x){ var c = CLS.filter(function(k){ return k.k === x.cls; })[0], cl = D.clis[x.c];
+    return el("tr", null, el("td", null, lk(cl[1], function(){ abrir("cli", x.c); }), el("div", {class:"mut", text:(cl[2] ? cl[2] + " · " : "") + ufNome(x.u) + " · " + D.reps[x.r].n})),
+      el("td", null, el("span", {class:"pill " + c.pill, text:c.n})), el("td", {class:"dt num"}, dataBR(x.ult), el("div", {class:"mut", text:x.dias === 0 ? "hoje" : "há " + x.dias + (x.dias === 1 ? " dia" : " dias")})),
+      el("td", {class:"r num", text:nf0.format(x.np)}), el("td", {class:"r num", text:brlFull(x.v12)})); });
+  lc.append(tabela([{t:"Cliente"}, {t:"Situação"}, {t:"Última compra"}, {t:"Pedidos em 12 meses", r:1}, {t:"Comprou em 12 meses", r:1}], linhas, 40, "atv"));
+  var ler = el("section", {class:"card"}), rp = G.rep, ia = G.ina;
+  ler.append(el("ul", {class:"reads"}, el("li", null, el("span", {class:"ic warn", text:"!"}), el("div", null, el("b", {text:nf0.format(rp.n) + " clientes em repescagem"}), " compraram " + brl(rp.v) + " nos últimos 12 meses. São os que estão mais perto de virar inativos; vale ordenar por maior compra e ligar primeiro para os maiores.")),
+    el("li", null, el("span", {class:"ic down", text:"▼"}), el("div", null, el("b", {text:nf0.format(ia.n) + " clientes inativos"}), " (" + pct(ia.n/tot, 1) + " da base com compra desde 2025), que ainda somam " + brl(ia.v) + " em compras nos últimos 12 meses.")),
+    el("li", null, el("span", {class:"ic up", text:"▲"}), el("div", null, el("b", {text:nf0.format(G.rec.n + G.ati.n) + " clientes recorrentes ou ativos"}), " (" + pct((G.rec.n + G.ati.n)/tot, 1) + "), responsáveis por " + brl(G.rec.v + G.ati.v) + " em 12 meses."))));
+  return [esc, k4, el("div", {class:"grid g2"}, hc, ler), rc, lc]; }
+
 /* ---------- fichas de cliente e de produto ---------- */
 var det = document.getElementById("det");
 function dataBR(dn){ var d = dn % 100, m = Math.floor(dn/100) % 100; return (d < 10 ? "0" : "") + d + "/" + (m < 10 ? "0" : "") + m + "/" + Math.floor(dn/10000); }
@@ -916,7 +989,7 @@ function render(){
   document.querySelectorAll("#tabs button").forEach(function(b){ b.setAttribute("aria-selected", String(b.dataset.t === S.tab)); });
   fRep.value = S.rep; fUf.value = S.uf; fCat.value = S.cat; fDe.value = S.a; fAte.value = S.b;
   document.getElementById("limpar").hidden = S.rep < 0 && S.uf < 0 && S.cat < 0 && S.a === 1 && S.b === CUT_M;
-  var tela = S.tab === "carteira" ? telaCarteira() : [escopo()].concat({geral:telaGeral, reps:telaReps, regioes:telaRegioes, produtos:telaProdutos, clientes:telaClientes}[S.tab](calcular()));
+  var tela = S.tab === "atividade" ? telaAtividade() : S.tab === "carteira" ? telaCarteira() : [escopo()].concat({geral:telaGeral, reps:telaReps, regioes:telaRegioes, produtos:telaProdutos, clientes:telaClientes}[S.tab](calcular()));
   app.replaceChildren.apply(app, tela); if (S.det) renderDet();
   if (S.cgFoco){ S.cgFoco = false; var n = document.getElementById("cgCli"); if (n){ n.focus(); try { n.setSelectionRange(n.value.length, n.value.length); } catch(e){} } } }
 opcoes(); ligar(); render();

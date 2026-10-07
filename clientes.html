@@ -18,7 +18,7 @@
   --bg:#F2F3F0; --surface:#FFFFFF; --surface-2:#E9EBE6; --muted:#EDEFEB;
   --ink:#1C2220; --ink-2:#525C57; --ink-3:#7F8883; --line:#D8DBD4; --line-2:#E8EAE5;
   --accent:#8F5329; --accent-ink:#FFFFFF; --accent-soft:#F6EBE1;
-  --ok:#2A7148; --ok-bg:#E2F0E7; --warn:#8A5E0F; --warn-bg:#F7EDD6; --crit:#A3372F;
+  --ok:#2A7148; --ok-bg:#E2F0E7; --warn:#8A5E0F; --warn-bg:#F7EDD6; --crit:#A3372F; --crit-bg:#F7E2DE;
   --f-disp:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -28,7 +28,7 @@
   --bg:#121615; --surface:#1A1F1E; --surface-2:#232928; --muted:#1E2423;
   --ink:#E7EAE6; --ink-2:#A8B0AB; --ink-3:#838C88; --line:#333A37; --line-2:#272E2C;
   --accent:#D38D5C; --accent-ink:#1B120D; --accent-soft:#33241B;
-  --ok:#74C495; --ok-bg:#1C3326; --warn:#E2B55E; --warn-bg:#3A2F16; --crit:#EA8F85;
+  --ok:#74C495; --ok-bg:#1C3326; --warn:#E2B55E; --warn-bg:#3A2F16; --crit:#EA8F85; --crit-bg:#3E2320;
 }}
 *{box-sizing:border-box}
 html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
@@ -53,7 +53,15 @@ main{max-width:900px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom,0
 .nome{font:600 14.5px/1.25 var(--f-body)}
 .sub{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;font-size:12px;color:var(--ink-2);margin-top:3px}
 .etq{font:600 10px/1 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;padding:4px 6px;border-radius:4px}
-.etq.ok{background:var(--ok-bg);color:var(--ok)} .etq.warn{background:var(--warn-bg);color:var(--warn)}
+.etq.ok,.etq.linha{background:var(--ok-bg);color:var(--ok)} .etq.warn,.etq.lum{background:var(--warn-bg);color:var(--warn)}
+.etq.crit{background:var(--crit-bg);color:var(--crit)} .etq.neutra{background:var(--accent-soft);color:var(--accent)} .etq.fora{background:var(--surface-2);color:var(--ink-3)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:0 14px 10px;max-width:900px;margin:0 auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font:500 13px var(--f-body);color:var(--ink-2);white-space:nowrap}
+.chip b{font-family:var(--f-mono);font-weight:600;margin-left:6px;color:var(--ink-3)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-pressed="true"] b{color:var(--bg);opacity:.72}
+.alerta{margin:0;padding:10px 14px;font-size:13px;background:var(--warn-bg);color:var(--warn)}
 .seta{color:var(--ink-3);font-size:12px}
 .ficha{background:var(--surface);border-bottom:1px solid var(--line);padding:6px 14px 16px;display:grid;gap:14px}
 .dados{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 16px;font-size:13.5px}
@@ -66,6 +74,8 @@ main{max-width:900px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom,0
 .vk strong{display:block;font:600 19px/1.2 var(--f-mono);margin-top:4px}
 .vk small{display:block;font-size:11.5px;color:var(--ink-2);margin-top:3px}
 .vk .sobe{color:var(--ok)} .vk .desce{color:var(--crit)}
+.vdatas{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.vdatas input{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--muted)}
 .vtit{font:700 11.5px var(--f-disp);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:2px 0 -6px}
 .vprod{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(50px,1fr) 148px;gap:4px 12px;align-items:center;font-size:13.5px;padding:6px 0;border-top:1px solid var(--line-2)}
 .vprod:first-of-type{border-top:0}
@@ -104,22 +114,33 @@ const quandoBR = (t) => new Date(t).toLocaleString("pt-BR", { day: "2-digit", mo
 
 const brl = (v) => (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const dataISO = (d) => { const p = String(d || "").split("-"); return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : ""; };
-const vendasCache = {};
+const vendasCache = {}, vendasFiltro = {};
+const chaveV = (cod) => { const f = vendasFiltro[cod] || {}; return cod + "|" + (f.de || "") + "|" + (f.ate || ""); };
 async function buscarVendas(cod, depois) {
-  if (vendasCache[cod] && !vendasCache[cod].falhou) return;
-  vendasCache[cod] = { carregando: true };
-  try { const res = await sb.rpc("api_cliente_vendas", { p_token: token, p_cod: cod }); if (res.error) throw res.error; vendasCache[cod] = res.data || { falhou: true }; }
-  catch (e) { vendasCache[cod] = { falhou: true }; }
+  const k = chaveV(cod), f = vendasFiltro[cod] || {};
+  if (vendasCache[k] && !vendasCache[k].falhou) { depois(); return; }
+  vendasCache[k] = { carregando: true };
+  try { const res = await sb.rpc("api_cliente_vendas", { p_token: token, p_cod: cod, p_de: f.de || null, p_ate: f.ate || null }); if (res.error) throw res.error; vendasCache[k] = res.data || { falhou: true }; }
+  catch (e) { vendasCache[k] = { falhou: true }; }
   depois();
 }
-function blocoVendas(cod) {
-  const v = vendasCache[cod], aviso = (t) => el("div", { style: "font-size:13px;color:var(--ink-3)" }, t);
-  if (!v || v.carregando) return [el("div", { class: "vtit" }, "Compras do cliente"), aviso("Carregando as compras…")];
-  if (v.falhou || v.erro) return [el("div", { class: "vtit" }, "Compras do cliente"), aviso("Não consegui carregar as compras agora.")];
-  if (v.vazio) return [el("div", { class: "vtit" }, "Compras do cliente"), aviso("A fábrica ainda não carregou o histórico de vendas.")];
+function blocoVendas(cod, depois) {
+  const f = vendasFiltro[cod] || {}, comFiltro = !!(f.de || f.ate);
+  const iDe = el("input", { type: "date", id: "vDe" + cod, value: f.de || "", "aria-label": "De" }), iAte = el("input", { type: "date", id: "vAte" + cod, value: f.ate || "", "aria-label": "Até" });
+  const troca = () => { vendasFiltro[cod] = { de: iDe.value, ate: iAte.value }; depois(); buscarVendas(cod, depois); };
+  iDe.addEventListener("change", troca); iAte.addEventListener("change", troca);
+  const datas = el("div", { class: "vdatas" }, el("label", { for: "vDe" + cod }, "Compras de"), iDe, el("label", { for: "vAte" + cod }, "até"), iAte,
+    comFiltro ? el("button", { type: "button", class: "bt", onclick: () => { vendasFiltro[cod] = {}; depois(); buscarVendas(cod, depois); } }, "Todo o período") : null);
+  return [el("div", { class: "vtit" }, "Compras do cliente"), datas, ...blocoVendas2(cod, comFiltro)];
+}
+function blocoVendas2(cod, comFiltro) {
+  const v = vendasCache[chaveV(cod)], aviso = (t) => el("div", { style: "font-size:13px;color:var(--ink-3)" }, t);
+  if (!v || v.carregando) return [aviso("Carregando as compras…")];
+  if (v.falhou || v.erro) return [aviso("Não consegui carregar as compras agora.")];
+  if (v.vazio) return [aviso("A fábrica ainda não carregou o histórico de vendas.")];
   const ate = dataISO(v.corte).slice(0, 5), rodape = "Vendas por emissão, líquidas de cancelamento, até " + dataISO(v.corte) + ".";
-  if (!v.linhas) return [el("div", { class: "vtit" }, "Compras do cliente"), aviso("Nenhuma compra deste cliente desde janeiro de 2025. " + rodape)];
-  const dias = Math.round((new Date(v.corte) - new Date(v.ultima)) / 864e5), dif = v.ano_anterior ? v.ano_atual / v.ano_anterior - 1 : null;
+  if (!v.linhas) return [aviso((comFiltro ? "Nenhuma compra deste cliente nas datas escolhidas. " : "Nenhuma compra deste cliente desde janeiro de 2025. ") + rodape)];
+  const dias = Math.round((new Date(v.corte) - new Date(v.ultima_geral || v.ultima)) / 864e5), dif = v.ano_anterior ? v.ano_atual / v.ano_anterior - 1 : null;
   const varTxt = dif == null ? (v.ano_atual ? "não comprou no mesmo período de " + (v.ano - 1) : "sem compra nos dois anos")
     : (dif >= 0 ? "▲ +" : "▼ −") + Math.abs(dif * 100).toFixed(0) + "% sobre " + (v.ano - 1) + " (" + brl(v.ano_anterior) + ")";
   const max = Math.max(1, ...v.produtos.map((p) => p.valor));
@@ -129,25 +150,33 @@ function blocoVendas(cod) {
       el("td", null, c.produto, c.cor ? el("div", { class: "m" }, c.cor) : null, novo ? el("div", { class: "m" }, c.entrega ? "Faturado em " + dataISO(c.entrega) + (c.carga && c.carga !== "0" ? " · carga " + c.carga : "") + (c.nf && c.nf !== "0" ? " · NF " + c.nf : "")
         : "Em aberto" + (c.carga && c.carga !== "0" ? " · carga " + c.carga + (c.previsao ? " · previsão " + c.previsao.slice(6, 8) + "/" + c.previsao.slice(4, 6) : "") : " · sem carga")) : null),
       el("td", { class: "n" }, fmt(c.qtd)), el("td", { class: "n" }, brl(c.valor))); });
-  return [el("div", { class: "vtit" }, "Compras do cliente"),
+  return [
     el("div", { class: "vk" },
-      el("div", null, el("b", null, "Desde jan/2025"), el("strong", null, brl(v.total)), el("small", null, fmt(v.pedidos) + (v.pedidos === 1 ? " pedido" : " pedidos") + " · primeira em " + dataISO(v.primeira)), el("small", null, "faturado " + brl(v.faturado) + " · em aberto " + brl(v.aberto))),
+      el("div", null, el("b", null, comFiltro ? "Nas datas escolhidas" : "Desde jan/2025"), el("strong", null, brl(v.total)), el("small", null, fmt(v.pedidos) + (v.pedidos === 1 ? " pedido" : " pedidos") + " · primeira em " + dataISO(v.primeira)), el("small", null, "faturado " + brl(v.faturado) + " · em aberto " + brl(v.aberto))),
       el("div", null, el("b", null, v.ano + " até " + ate), el("strong", null, brl(v.ano_atual)), el("small", { class: dif == null ? null : dif >= 0 ? "sobe" : "desce" }, varTxt)),
       el("div", null, el("b", null, "Ticket médio"), el("strong", null, brl(v.pedidos ? v.total / v.pedidos : 0)), el("small", null, "por pedido")),
-      el("div", null, el("b", null, "Última compra"), el("strong", null, dataISO(v.ultima)), el("small", { class: dias > 180 ? "desce" : null }, dias <= 0 ? "no dia do último relatório" : "há " + fmt(dias) + (dias === 1 ? " dia" : " dias")))),
+      el("div", null, el("b", null, "Última compra"), el("strong", null, dataISO(v.ultima_geral || v.ultima)), el("small", { class: dias > 180 ? "desce" : null }, dias <= 0 ? "no dia do último relatório" : "há " + fmt(dias) + (dias === 1 ? " dia" : " dias")))),
     el("div", { class: "vtit" }, "O que mais compra"),
     el("div", null, ...v.produtos.map((p) => el("div", { class: "vprod" }, el("span", null, p.produto), el("span", null, el("i", { style: "width:" + (p.valor / max * 100).toFixed(1) + "%" })), el("span", null, brl(p.valor) + " · " + fmt(p.qtd) + " un.")))),
     el("div", { class: "vtit" }, "Compras por data de emissão"),
     el("div", { class: "vtw" }, el("table", { class: "vt" }, el("thead", null, el("tr", null, el("th", null, "Emissão"), el("th", null, "Pedido"), el("th", null, "Produto, cor e faturamento"), el("th", { class: "n" }, "Qtd."), el("th", { class: "n" }, "Valor"))), el("tbody", null, ...linhas))),
     aviso((v.linhas > v.compras.length ? "Mostrando os " + fmt(v.compras.length) + " itens mais recentes de " + fmt(v.linhas) + ". " : "") + rodape)];
 }
+const SITS = [["recorrente", "Recorrente", "linha"], ["ativo", "Ativo", "neutra"], ["repescagem", "Repescagem", "lum"], ["inativo", "Inativo", "crit"], ["sem", "Sem compra", "fora"]];
+function seloSit(c, corte) {
+  const s = SITS.find((x) => x[0] === c.sit); if (!s) return null;
+  const dias = c.ultima && corte ? Math.round((new Date(corte) - new Date(c.ultima)) / 864e5) : null;
+  const txt = c.sit === "sem" ? "Sem compra desde 2025" : s[1] + (dias == null ? "" : dias <= 0 ? " · comprou hoje" : c.sit === "recorrente" || c.sit === "ativo" ? " · comprou há " + dias + (dias === 1 ? " dia" : " dias") : " · " + dias + " dias sem comprar");
+  return el("span", { class: "etq " + s[2] }, txt);
+}
+let situacao = "";
 let token = null, d = null, lista = [], busca = "", consultor = "", aberto = null, tempo = null, montado = false;
 try { token = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("pe-token"); } catch (e) {}
 if (token && location.hash.indexOf("t=") >= 0) { try { localStorage.setItem("pe-token", token); } catch (e) {} history.replaceState(null, "", location.pathname); }
 
 async function carregar(mais) {
   let r = null;
-  try { const res = await sb.rpc("api_clientes", { p_token: token, p_busca: busca || null, p_consultor: consultor ? Number(consultor) : null, p_limite: 50, p_pulo: mais ? lista.length : 0 });
+  try { const res = await sb.rpc("api_clientes", { p_token: token, p_busca: busca || null, p_consultor: consultor ? Number(consultor) : null, p_limite: 50, p_pulo: mais ? lista.length : 0, p_situacao: situacao || null });
     if (res.error) throw res.error; r = res.data; }
   catch (e) { if (!montado) return telaEntrar("Sem conexão agora. Confira a internet e tente de novo."); return; }
   if (!r || r.erro) { try { localStorage.removeItem("pe-token"); } catch (e) {} token = null; return telaEntrar("Este código não vale mais. Peça o novo para a fábrica."); }
@@ -172,7 +201,9 @@ function montar() {
   $("#app").replaceChildren(
     el("div", { class: "topo" },
       el("div", { class: "cabeca" }, el("div", null, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Meus clientes")), el("div", { class: "euSou", id: "euSou" })),
-      el("div", { class: "linha" }, bx, sel, el("a", { class: "voltar", href: "./" }, "← Pronta entrega"))),
+      el("div", { class: "linha" }, bx, sel, el("a", { class: "voltar", href: "./" }, "← Pronta entrega")),
+      el("div", { class: "chips", id: "sits" })),
+    el("p", { class: "alerta", id: "alerta", hidden: true }),
     el("div", { class: "faixa", id: "faixa" }), el("main", { id: "lista" }));
 }
 function render() {
@@ -183,12 +214,18 @@ function render() {
   else sel.hidden = true;
   const at = d.atualizado;
   $("#faixa").textContent = fmt(d.total) + (d.total === 1 ? " cliente" : " clientes") + (at ? " · base atualizada em " + quandoBR(at.em) : "");
+  const st = d.situacoes || {}, todosN = Object.values(st).reduce((a, n) => a + n, 0);
+  $("#sits").replaceChildren(el("button", { class: "chip", type: "button", "aria-pressed": String(!situacao), onclick: () => { situacao = ""; aberto = null; carregar(); } }, "Todos", el("b", null, fmt(todosN))),
+    ...SITS.filter((x) => st[x[0]]).map((x) => el("button", { class: "chip", type: "button", "aria-pressed": String(situacao === x[0]), onclick: () => { situacao = situacao === x[0] ? "" : x[0]; aberto = null; carregar(); } }, x[1], el("b", null, fmt(st[x[0]])))));
+  const al = $("#alerta"), nRep = st.repescagem || 0, nIna = st.inativo || 0;
+  al.hidden = !(nRep || nIna);
+  al.textContent = "Atenção: " + [nRep ? fmt(nRep) + (nRep === 1 ? " cliente em repescagem (91 a 180 dias sem comprar)" : " clientes em repescagem (91 a 180 dias sem comprar)") : "", nIna ? fmt(nIna) + (nIna === 1 ? " inativo (mais de 180 dias)" : " inativos (mais de 180 dias)") : ""].filter(Boolean).join(" e ") + ". Toque no botão acima para ver quem são.";
   const semCodigo = !d.gerente && !d.codigo && !(d.extras || []).length, blocos = [];
   for (const c of lista) {
     const ab = aberto === c.cod, i = c.info || {};
     blocos.push(el("button", { class: "cli", type: "button", "aria-expanded": String(ab), onclick: () => { aberto = ab ? null : c.cod; render(); if (aberto) buscarVendas(c.cod, () => { if (aberto === c.cod) render(); }); } },
       el("div", null, el("div", { class: "nome" }, titulo(c.razao)),
-        el("div", { class: "sub" }, [titulo(c.cidade), c.uf].filter(Boolean).join(" · "), el("span", null, "cód. " + c.cod),
+        el("div", { class: "sub" }, [titulo(c.cidade), c.uf].filter(Boolean).join(" · "), el("span", null, "cód. " + c.cod), seloSit(c, d.corte),
           i.expostos ? el("span", { class: "etq ok" }, "Tem exposição") : null)),
       el("div", { class: "seta" }, ab ? "fechar" : "abrir")));
     if (ab) blocos.push(ficha(c));
@@ -208,7 +245,7 @@ function ficha(c) {
       dado("Representante", (c.cons || []).map((x) => titulo(x.nome)).join(", ")), dado("Cliente desde", c.cadastro)),
     bloco("Produtos expostos na loja", i.expostos, "Nada registrado pela fábrica."),
     i.obs ? bloco("Observações", i.obs) : null,
-    ...blocoVendas(c.cod),
+    ...blocoVendas(c.cod, () => { if (aberto === c.cod) render(); }),
     el("div", { style: "font-size:12px;color:var(--ink-3)" }, i.em ? "Ficha atualizada pela fábrica em " + quandoBR(i.em) + "." : "A fábrica ainda não preencheu a ficha deste cliente."));
 }
 if (token) carregar(); else telaEntrar();
