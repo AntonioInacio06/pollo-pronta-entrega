@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1A1F1E">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="app/rep-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="app/rep-192.png">
+<title>Meus clientes · Pollo Decor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F2F3F0; --surface:#FFFFFF; --surface-2:#E9EBE6; --muted:#EDEFEB;
+  --ink:#1C2220; --ink-2:#525C57; --ink-3:#7F8883; --line:#D8DBD4; --line-2:#E8EAE5;
+  --accent:#8F5329; --accent-ink:#FFFFFF; --accent-soft:#F6EBE1;
+  --ok:#2A7148; --ok-bg:#E2F0E7; --warn:#8A5E0F; --warn-bg:#F7EDD6; --crit:#A3372F;
+  --f-disp:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --topo:158px;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#121615; --surface:#1A1F1E; --surface-2:#232928; --muted:#1E2423;
+  --ink:#E7EAE6; --ink-2:#A8B0AB; --ink-3:#838C88; --line:#333A37; --line-2:#272E2C;
+  --accent:#D38D5C; --accent-ink:#1B120D; --accent-soft:#33241B;
+  --ok:#74C495; --ok-bg:#1C3326; --warn:#E2B55E; --warn-bg:#3A2F16; --crit:#EA8F85;
+}}
+*{box-sizing:border-box}
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 var(--f-body)}
+input,select{font-size:16px;font-family:inherit;color:inherit}
+button{font:inherit;color:inherit;touch-action:manipulation}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.topo{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.cabeca{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 8px;max-width:900px;margin:0 auto}
+.marca{font:700 10px/1 var(--f-disp);letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 20px/1.05 var(--f-disp);margin:3px 0 0}
+.euSou{font-size:11.5px;color:var(--ink-3);text-align:right;line-height:1.35;padding-top:3px}
+.linha{display:flex;flex-wrap:wrap;gap:8px;padding:0 14px 10px;max-width:900px;margin:0 auto}
+.linha input{flex:1;min-width:160px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--muted)}
+.linha select{padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--muted);max-width:100%}
+.voltar{display:flex;align-items:center;padding:0 13px;border:1px solid var(--accent);border-radius:10px;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap;min-height:44px}
+main{max-width:900px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom,0px) + 40px)}
+.faixa{padding:9px 14px;font-size:12.5px;color:var(--ink-2)}
+.cli{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:12px 14px;background:var(--surface);border:0;border-bottom:1px solid var(--line-2);width:100%;text-align:left}
+.cli[aria-expanded="true"]{background:var(--accent-soft)}
+.nome{font:600 14.5px/1.25 var(--f-body)}
+.sub{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;font-size:12px;color:var(--ink-2);margin-top:3px}
+.etq{font:600 10px/1 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;padding:4px 6px;border-radius:4px}
+.etq.ok{background:var(--ok-bg);color:var(--ok)} .etq.warn{background:var(--warn-bg);color:var(--warn)}
+.seta{color:var(--ink-3);font-size:12px}
+.ficha{background:var(--surface);border-bottom:1px solid var(--line);padding:6px 14px 16px;display:grid;gap:14px}
+.dados{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 16px;font-size:13.5px}
+.dados b,.bloco b{display:block;font:600 10.5px var(--f-disp);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:2px}
+.dados a{color:var(--accent)}
+.bloco{background:var(--muted);border-radius:10px;padding:10px 12px;font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.vazio{padding:40px 20px;text-align:center;color:var(--ink-3)}
+.bt{padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);font-size:13.5px;color:var(--ink-2)}
+.entrar{max-width:420px;margin:48px auto;padding:0 18px;display:grid;gap:12px}
+.entrar input{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.entrar button{padding:14px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:600 16px var(--f-disp)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPA_URL = "https://qatazfwvckitolhqsqtl.supabase.co";
+const SUPA_KEY = "sb_publishable_Mq2CWYw_E4T13_rIYgH83Q_678o_prh";
+const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+const $ = (s) => document.querySelector(s);
+const el = (t, a, ...k) => { const e = document.createElement(t);
+  if (a) for (const [n, v] of Object.entries(a)) { if (v == null || v === false) continue;
+    if (n === "class") e.className = v; else if (n.startsWith("on")) e.addEventListener(n.slice(2), v); else e.setAttribute(n, v === true ? "" : v); }
+  for (const c of k.flat()) { if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e; };
+const fmt = (n) => (Number(n) || 0).toLocaleString("pt-BR");
+const titulo = (s) => String(s || "").toLowerCase().replace(/(^|[\s\/(\-.])([a-z\u00e0-\u00fa])/g, (m, a, b) => a + b.toUpperCase());
+const quandoBR = (t) => new Date(t).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", " às");
+
+let token = null, d = null, lista = [], busca = "", consultor = "", aberto = null, tempo = null, montado = false;
+try { token = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("pe-token"); } catch (e) {}
+if (token && location.hash.indexOf("t=") >= 0) { try { localStorage.setItem("pe-token", token); } catch (e) {} history.replaceState(null, "", location.pathname); }
+
+async function carregar(mais) {
+  let r = null;
+  try { const res = await sb.rpc("api_clientes", { p_token: token, p_busca: busca || null, p_consultor: consultor ? Number(consultor) : null, p_limite: 50, p_pulo: mais ? lista.length : 0 });
+    if (res.error) throw res.error; r = res.data; }
+  catch (e) { if (!montado) return telaEntrar("Sem conexão agora. Confira a internet e tente de novo."); return; }
+  if (!r || r.erro) { try { localStorage.removeItem("pe-token"); } catch (e) {} token = null; return telaEntrar("Este código não vale mais. Peça o novo para a fábrica."); }
+  d = r; lista = mais ? lista.concat(r.clientes || []) : (r.clientes || []);
+  if (!montado) montar(); render();
+}
+function telaEntrar(msg) {
+  montado = false;
+  const cod = el("input", { id: "cod", placeholder: "código de acesso", autocomplete: "off", autocapitalize: "none", autocorrect: "off", spellcheck: "false", enterkeyhint: "go" });
+  const ir = () => { const v = cod.value.trim(); if (!v) return; token = v; try { localStorage.setItem("pe-token", v); } catch (e) {} carregar(); };
+  cod.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); });
+  $("#app").replaceChildren(el("div", { class: "entrar" }, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Meus clientes"),
+    el("p", { style: "color:var(--ink-2);font-size:13.5px;margin:0" }, msg || "Use o link que a fábrica mandou para você, ou cole aqui o seu código de acesso."),
+    cod, el("button", { type: "button", onclick: ir }, "Entrar")));
+}
+function montar() {
+  montado = true;
+  const bx = el("input", { type: "search", id: "busca", placeholder: "Buscar por nome, cidade, CNPJ ou código", autocomplete: "off", autocapitalize: "none", autocorrect: "off", spellcheck: "false", enterkeyhint: "search" });
+  bx.addEventListener("input", () => { busca = bx.value; clearTimeout(tempo); tempo = setTimeout(() => { aberto = null; carregar(); }, 350); });
+  const sel = el("select", { id: "cons", "aria-label": "Carteira", hidden: true });
+  sel.addEventListener("change", () => { consultor = sel.value; aberto = null; carregar(); });
+  $("#app").replaceChildren(
+    el("div", { class: "topo" },
+      el("div", { class: "cabeca" }, el("div", null, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Meus clientes")), el("div", { class: "euSou", id: "euSou" })),
+      el("div", { class: "linha" }, bx, sel, el("a", { class: "voltar", href: "./" }, "← Pronta entrega"))),
+    el("div", { class: "faixa", id: "faixa" }), el("main", { id: "lista" }));
+}
+function render() {
+  $("#euSou").textContent = d.nome + (d.codigo ? " · cód. " + d.codigo : "");
+  const sel = $("#cons"), cs = d.consultores || [];
+  if (cs.length > 1) { sel.hidden = false; sel.replaceChildren(el("option", { value: "" }, "Todas as carteiras"),
+    ...cs.map((c) => el("option", { value: c.cod, selected: String(consultor) === String(c.cod) ? true : null }, titulo(c.nome) + " (" + fmt(c.n) + ")"))); }
+  else sel.hidden = true;
+  const at = d.atualizado;
+  $("#faixa").textContent = fmt(d.total) + (d.total === 1 ? " cliente" : " clientes") + (at ? " · base atualizada em " + quandoBR(at.em) : "");
+  const semCodigo = !d.gerente && !d.codigo && !(d.extras || []).length, blocos = [];
+  for (const c of lista) {
+    const ab = aberto === c.cod, i = c.info || {};
+    blocos.push(el("button", { class: "cli", type: "button", "aria-expanded": String(ab), onclick: () => { aberto = ab ? null : c.cod; render(); } },
+      el("div", null, el("div", { class: "nome" }, titulo(c.razao)),
+        el("div", { class: "sub" }, [titulo(c.cidade), c.uf].filter(Boolean).join(" · "), el("span", null, "cód. " + c.cod),
+          i.expostos ? el("span", { class: "etq ok" }, "Tem exposição") : null, i.descontos ? el("span", { class: "etq warn" }, "Tem desconto") : null)),
+      el("div", { class: "seta" }, ab ? "fechar" : "abrir")));
+    if (ab) blocos.push(ficha(c));
+  }
+  if (!lista.length) blocos.push(el("div", { class: "vazio" }, semCodigo ? "Seu código de representante ainda não foi cadastrado. Peça ao gerente para liberar a sua carteira." : busca ? "Nenhum cliente com esta busca." : "Nenhum cliente na sua carteira ainda."));
+  if (lista.length < d.total) blocos.push(el("div", { class: "vazio", style: "padding:16px" }, el("button", { class: "bt", type: "button", onclick: () => carregar(true) }, "Mostrar mais (" + fmt(d.total - lista.length) + " restantes)")));
+  $("#lista").replaceChildren(...blocos);
+}
+function ficha(c) {
+  const i = c.info || {}, dado = (r, v) => v ? el("div", null, el("b", null, r), v) : null;
+  const tel = (v) => v ? el("a", { href: "tel:" + v.replace(/[^0-9+]/g, "") }, v) : null;
+  const bloco = (r, v, vazio) => el("div", { class: "bloco" }, el("b", null, r), v || vazio);
+  return el("div", { class: "ficha" },
+    el("div", { class: "dados" }, dado("Fantasia", titulo(c.fantasia)), dado("CNPJ / CPF", c.doc), dado("Telefone", tel(c.telefone)), dado("Outro telefone", tel(i.telefone)),
+      dado("E-mail", c.email), dado("Outro e-mail", i.email), dado("Contato", i.contato || titulo(c.contato)),
+      dado("Endereço", [titulo(c.endereco), titulo(c.bairro)].filter(Boolean).join(" · ")), dado("Cidade", [titulo(c.cidade), c.uf, c.cep].filter(Boolean).join(" · ")),
+      dado("Representante", (c.cons || []).map((x) => titulo(x.nome)).join(", ")), dado("Cliente desde", c.cadastro)),
+    bloco("Produtos expostos na loja", i.expostos, "Nada registrado pela fábrica."),
+    bloco("Descontos concedidos", i.descontos, "Nenhum desconto registrado."),
+    i.obs ? bloco("Observações", i.obs) : null,
+    el("div", { style: "font-size:12px;color:var(--ink-3)" }, i.em ? "Ficha atualizada pela fábrica em " + quandoBR(i.em) + "." : "A fábrica ainda não preencheu a ficha deste cliente."));
+}
+if (token) carregar(); else telaEntrar();
+</script>
+</body>
+</html>

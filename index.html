@@ -201,6 +201,7 @@ function montarTela() {
       el("div", { class: "atualizado", id: "atualizado" }),
       el("div", { class: "buscaLinha" }, bx,
         el("button", { class: "limpar", type: "button", onclick: () => { bx.value = ""; busca = ""; renderLista(); bx.focus(); } }, "Limpar"),
+        el("a", { class: "catalogo", href: "clientes.html" }, "Clientes"),
         el("a", { class: "catalogo", href: "https://pollo-catalogo.hugolazevedo.workers.dev/", target: "_blank", rel: "noopener" }, "Catálogo ↗")),
       el("div", { class: "chips", id: "chips" })),
     dados.publicacao && dados.publicacao.observacao ? el("div", { class: "aviso" }, dados.publicacao.observacao) : null,

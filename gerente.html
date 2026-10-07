@@ -123,6 +123,20 @@ main{max-width:1100px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom,
 .ev time{font:600 12.5px/1.5 var(--f-mono);color:var(--ink-2)}
 .evQuem{font:600 14px/1.3 var(--f-body)}
 .evQue{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.cli{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:12px 14px;background:var(--surface);border:0;border-bottom:1px solid var(--line-2);width:100%;text-align:left}
+.cli[aria-expanded="true"]{background:var(--accent-soft)}
+.cliDir{text-align:right;font-size:12px;color:var(--ink-3);white-space:nowrap}
+.ficha{background:var(--surface);border-bottom:1px solid var(--line);padding:4px 14px 16px;display:grid;gap:14px}
+.fichaDados{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 16px;font-size:13px}
+.fichaDados div b{display:block;font:600 10.5px var(--f-disp);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.campo{display:grid;gap:5px}
+.campo label{font:600 11px var(--f-disp);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.campo input,.campo select,.campo textarea{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--muted);width:100%}
+.campo textarea{min-height:76px;resize:vertical;line-height:1.4}
+.campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.acessoRep{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.acessoRep .campo{flex:1;min-width:130px}
+.nota{padding:10px 14px;font-size:12.5px;color:var(--ink-2);background:var(--warn-bg)}
 .rodapeAud{padding:14px;font-size:12px;color:var(--ink-3);line-height:1.5}
 @media (hover:hover) and (pointer:fine){
   .uso:hover{background:var(--muted)}
@@ -154,6 +168,7 @@ const hora = (t) => new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", m
 const dataBR = (d) => { const p = String(d || "").split("-"); return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : String(d || ""); };
 const LINK_APP = location.origin + location.pathname.replace(/gerente(\.html)?$/, "");
 
+let cli = { d: null, lista: [], busca: "", consultor: "", aberto: null, imp: null, foco: false, t: null };
 let aud = null, audF = { de: "", ate: "", usuario: "", acao: "" };
 let token = null, aba = "reservas", filtro = "pendentes", busca = "", reservas = null, reps = null, dia = null, montado = false, ocupado = false;
 try { token = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("pe-gerente"); } catch (e) {}
@@ -168,6 +183,7 @@ async function carregar() {
     reservas = r;
     reps = await chamar("api_representantes", { p_token: token });
     if (aba === "aud" || !aud) await carregarAud(true);
+    if (!cli.d) await carregarCli();
   } catch (e) { toast("Sem conexão com o servidor."); if (!montado) return telaEntrar("Não consegui falar com o servidor. Tente de novo."); }
   if (!montado) montarTela(); else render();
 }
@@ -178,6 +194,45 @@ async function carregarAud(quieto) {
     if (r && !r.erro) aud = r;
   } catch (e) { if (!quieto) toast("Não consegui carregar a auditoria."); }
   if (!quieto && montado) render();
+}
+async function carregarCli(mais) {
+  try {
+    const r = await chamar("api_clientes", { p_token: token, p_busca: cli.busca || null, p_consultor: cli.consultor ? Number(cli.consultor) : null,
+      p_limite: 50, p_pulo: mais ? cli.lista.length : 0 });
+    if (r && !r.erro) { cli.d = r; cli.lista = mais ? cli.lista.concat(r.clientes || []) : (r.clientes || []); }
+  } catch (e) { toast("Não consegui carregar os clientes."); }
+  if (montado && aba === "cli") render();
+}
+function lerClientes(txt) {
+  const ROT = [["CPF/CNPJ:", "doc"], ["R.G./I.E.:", "ie"], ["Endereço:", "endereco"], ["Bairro:", "bairro"], ["Cidade:", "cidade"], ["UF:", "uf"], ["CEP:", "cep"],
+    ["Contato:", "contato"], ["Região:", "regiao"], ["Status:", "status"], ["Telefone:", "telefone"]];
+  const mapa = new Map(); let cons = null, cur = null, emissao = "";
+  for (const raw of txt.split(/\r?\n/)) {
+    const f = raw.split(";").map((x) => x.trim()), ne = f.filter(Boolean); if (!ne.length) continue;
+    if (!emissao) for (const x of ne) { const m = /^Emissão: (\d\d\/\d\d\/\d{4} \d\d:\d\d)/.exec(x); if (m) emissao = m[1]; }
+    const mc = /^Consultor de Vendas:\s*(\d+)\s*-\s*(.*)$/.exec(ne[0]); if (mc) { cons = [Number(mc[1]), mc[2].trim()]; cur = null; continue; }
+    if (cons && /^\d{3,6}$/.test(f[0]) && ne.length >= 2 && !ne[1].startsWith("CPF")) {
+      const cod = Number(f[0]); cur = mapa.get(cod);
+      if (!cur) { const ult = ne[ne.length - 1]; cur = { cod: cod, razao: f[2] || "", fantasia: f[10] || "", email: f[11] || "", cadastro: /^\d\d\/\d\d\/\d{4}/.test(ult) ? ult : "", cons: [] }; mapa.set(cod, cur); }
+      if (!cur.cons.some((c) => c[0] === cons[0])) cur.cons.push(cons); continue; }
+    if (!cur) continue;
+    for (const [lab, k] of ROT) { if (k in cur) continue; const i = f.indexOf(lab); if (i < 0) continue;
+      let v = ""; for (const y of f.slice(i + 1)) { if (y.endsWith(":") && y !== lab) break; if (y) { v = y; break; } } cur[k] = v; }
+  }
+  return { emissao: emissao, clientes: [...mapa.values()] };
+}
+async function importarClientes() {
+  const m = cli.imp; if (!m || ocupado) return; ocupado = true;
+  const lote = String(Date.now()), todos = m.clientes, passo = 400;
+  try {
+    for (let i = 0; i < todos.length; i += passo) {
+      const fim = i + passo >= todos.length; cli.imp.msg = "Enviando " + fmt(Math.min(i + passo, todos.length)) + " de " + fmt(todos.length) + "…"; render();
+      const r = await chamar("api_importar_clientes", { p_token: token, p_dados: { lote: lote, clientes: todos.slice(i, i + passo), fim: fim, total: todos.length, arquivo: m.arquivo, emissao: m.emissao } });
+      if (!r || r.erro) throw new Error(r && r.erro || "erro");
+    }
+    cli.imp = null; toast(fmt(todos.length) + " clientes importados."); ocupado = false; await carregarCli(); reps = await chamar("api_representantes", { p_token: token }); render(); return;
+  } catch (e) { cli.imp.msg = "A importação parou no meio e nada foi apagado. Tente de novo."; cli.imp.erro = true; }
+  ocupado = false; render();
 }
 function telaEntrar(erro) {
   montado = false;
@@ -223,13 +278,13 @@ function render() {
   $("#diaTxt").replaceChildren(document.createTextNode(oDia === hoje ? "Hoje, " + dataBR(oDia) : dataBR(oDia)),
     el("br"), document.createTextNode("reserva sem pedido cai às 23h59"),
     ...(aud && aud.publicacao ? [el("br"), document.createTextNode("Pronta entrega atualizada em " + quandoBR(aud.publicacao.em) + (aud.publicacao.por ? " por " + aud.publicacao.por : ""))] : []));
-  const naAud = aba === "aud";
-  $("#tituloTela").textContent = naAud ? "Auditoria do sistema" : aba === "reps" ? "Representantes" : "Reservas do dia";
+  const naAud = aba === "aud" || aba === "cli";
+  $("#tituloTela").textContent = aba === "aud" ? "Auditoria do sistema" : aba === "cli" ? "Clientes" : aba === "reps" ? "Representantes" : "Reservas do dia";
   $("#placar").hidden = naAud; $("#ferramentas").hidden = naAud; $("#chips").hidden = naAud;
   $("#abas").replaceChildren(...[["reservas", "Reservas", linhas.length], ["reps", "Representantes", (reps || []).filter((r) => r.papel === "representante").length]]
-    .concat([["aud", "Auditoria", aud ? aud.total : 0]])
+    .concat([["cli", "Clientes", cli.d ? cli.d.base : 0], ["aud", "Auditoria", aud ? aud.total : 0]])
     .map(([v, t, n]) => el("button", { role: "tab", type: "button", "aria-selected": String(aba === v),
-      onclick: () => { aba = v; render(); if (v === "aud") carregarAud(); } }, t, el("b", null, fmt(n)))),
+      onclick: () => { aba = v; render(); if (v === "aud") carregarAud(); if (v === "cli") carregarCli(); } }, t, el("b", null, fmt(n)))),
     el("a", { class: "painel", href: "https://claude.ai/artifact/PNpcpLENX9xw6U8WTZMPnQ", target: "_blank", rel: "noopener" }, "Painel Executivo ↗"),
     el("a", { class: "painel", href: "https://pollo-catalogo.hugolazevedo.workers.dev/", target: "_blank", rel: "noopener" }, "Catálogo ↗"),
     el("a", { class: "ext", href: "https://claude.ai/artifact/R41KP89q4RFJ6yUgo16eRP", target: "_blank", rel: "noopener" }, "Gestão Comercial ↗"));
@@ -238,7 +293,77 @@ function render() {
     el("div", null, el("div", { class: "rot" }, "Virou pedido"), el("div", { class: "val ped" }, fmt(ped)), el("div", { class: "un" }, "peças")),
     el("div", null, el("div", { class: "rot" }, "Aguardando"), el("div", { class: "val pend" }, fmt(pc - ped)), el("div", { class: "un" }, "peças · caem hoje")),
     el("div", null, el("div", { class: "rot" }, "Representantes"), el("div", { class: "val" }, fmt(pessoas)), el("div", { class: "un" }, "reservaram")));
-  if (aba === "reservas") renderReservas(linhas); else if (aba === "reps") renderReps(); else renderAud();
+  if (aba === "reservas") renderReservas(linhas); else if (aba === "reps") renderReps(); else if (aba === "cli") renderCli(); else renderAud();
+}
+function renderCli() {
+  const corpo = $("#corpo"), d = cli.d;
+  if (!d) { corpo.replaceChildren(el("div", { class: "vazio" }, "Carregando os clientes…")); return; }
+  const arq = el("input", { type: "file", id: "arqClientes", accept: ".csv,text/csv", hidden: true });
+  arq.addEventListener("change", () => { const f = arq.files && arq.files[0]; if (!f) return; const fr = new FileReader();
+    fr.onload = () => { let r = null; try { r = lerClientes(String(fr.result)); } catch (e) {}
+      if (!r || r.clientes.length < 20) cli.imp = { erro: true, msg: "Não reconheci este arquivo. Use o Relatório de Clientes Por Consultores do ERP, exportado em CSV." };
+      else cli.imp = { clientes: r.clientes, emissao: r.emissao, arquivo: f.name, consultores: new Set(r.clientes.flatMap((c) => c.cons.map((x) => x[0]))).size };
+      render(); };
+    fr.readAsText(f, "ISO-8859-1"); });
+  const at = d.atualizado;
+  const topo = el("div", { class: "ferramentas" },
+    el("span", { style: "font-size:12.5px;color:var(--ink-2);flex:1;min-width:200px" }, d.base ? fmt(d.base) + " clientes na base · " + (at ? "atualizada em " + quandoBR(at.em) + " por " + (at.por || "?") + (at.emissao ? " (relatório do ERP de " + at.emissao + ")" : "") : "sem data de importação") : "Nenhum cliente importado ainda."),
+    arq, el("button", { class: "bt forte", type: "button", onclick: () => arq.click() }, d.base ? "Atualizar clientes pelo ERP" : "Importar clientes do ERP"));
+  const blocos = [topo];
+  if (cli.imp) blocos.push(el("div", { class: "nota" }, cli.imp.clientes && !cli.imp.msg ? "Arquivo " + cli.imp.arquivo + ": " + fmt(cli.imp.clientes.length) + " clientes de " + fmt(cli.imp.consultores) + " consultores" + (cli.imp.emissao ? ", emitido em " + cli.imp.emissao : "") + ". A base atual é trocada por esta; o que os gerentes preencheram é mantido. " : (cli.imp.msg || "") + " ",
+    cli.imp.clientes && !cli.imp.msg ? el("button", { class: "bt forte", type: "button", onclick: importarClientes }, "Importar agora") : null, " ",
+    !ocupado ? el("button", { class: "bt", type: "button", onclick: () => { cli.imp = null; render(); } }, cli.imp.clientes && !cli.imp.erro ? "Cancelar" : "Fechar") : null));
+  const bx = el("input", { type: "search", id: "cliBusca", placeholder: "Buscar por nome, cidade, CNPJ ou código", autocomplete: "off", autocapitalize: "none", spellcheck: "false", value: cli.busca });
+  bx.addEventListener("input", () => { cli.busca = bx.value; clearTimeout(cli.t); cli.t = setTimeout(() => { cli.foco = true; cli.aberto = null; carregarCli(); }, 350); });
+  const sel = el("select", { id: "cliCons", "aria-label": "Representante" }, el("option", { value: "" }, "Todos os representantes"),
+    ...(d.consultores || []).map((c) => el("option", { value: c.cod, selected: String(cli.consultor) === String(c.cod) ? true : null }, c.cod + " · " + titulo(c.nome) + " (" + fmt(c.n) + ")")));
+  sel.addEventListener("change", () => { cli.consultor = sel.value; cli.aberto = null; carregarCli(); });
+  blocos.push(el("div", { class: "ferramentas" }, bx, sel));
+  blocos.push(el("div", { class: "secao" }, "Clientes", el("span", null, fmt(d.total) + (d.total === 1 ? " encontrado" : " encontrados") + " · toque para abrir a ficha")));
+  for (const c of cli.lista) {
+    const aberto = cli.aberto === c.cod, i = c.info || {}, dono = (c.cons || []).map((x) => titulo(x.nome) + " (" + x.cod + ")").join(", ") || "sem representante";
+    blocos.push(el("button", { class: "cli", type: "button", "aria-expanded": String(aberto), onclick: () => { cli.aberto = aberto ? null : c.cod; render(); } },
+      el("div", null, el("div", { class: "resNome" }, titulo(c.razao)),
+        el("div", { class: "resSub" }, [titulo(c.cidade), c.uf].filter(Boolean).join(" · "), el("span", null, "cód. " + c.cod),
+          i.expostos ? el("span", { class: "etq linha" }, "Tem exposição") : null, i.descontos ? el("span", { class: "etq lum" }, "Tem desconto") : null,
+          i.rep_cod ? el("span", { class: "etq fora" }, "Representante trocado") : null)),
+      el("div", { class: "cliDir" }, dono)));
+    if (aberto) blocos.push(fichaCli(c));
+  }
+  if (!cli.lista.length) blocos.push(el("div", { class: "vazio" }, d.base ? "Nenhum cliente com estes filtros." : "Importe o Relatório de Clientes Por Consultores do ERP para começar."));
+  if (cli.lista.length < d.total) blocos.push(el("div", { class: "vazio", style: "padding:16px" }, el("button", { class: "bt", type: "button", onclick: () => carregarCli(true) }, "Mostrar mais (" + fmt(d.total - cli.lista.length) + " restantes)")));
+  corpo.replaceChildren(...blocos);
+  if (cli.foco) { cli.foco = false; const n = $("#cliBusca"); n.focus(); try { n.setSelectionRange(n.value.length, n.value.length); } catch (e) {} }
+}
+function fichaCli(c) {
+  const i = c.info || {}, d = cli.d, dado = (r, v) => v ? el("div", null, el("b", null, r), v) : null;
+  const campo = (id, rot, no) => el("div", { class: "campo" }, el("label", { for: id }, rot), no);
+  const erp = (c.erp || []).map((x) => titulo(x.nome) + " (" + x.cod + ")").join(", ") || "sem consultor";
+  const sRep = el("select", { id: "fRep" + c.cod }, el("option", { value: "0" }, "Conforme o ERP: " + erp),
+    ...(d.opcoes || []).filter((o) => o.cod).map((o) => el("option", { value: o.cod, selected: i.rep_cod === o.cod ? true : null }, o.cod + " · " + titulo(o.nome))));
+  const fContato = el("input", { id: "fCt" + c.cod, value: i.contato || "", autocomplete: "off", placeholder: c.contato || "nome de quem atende" });
+  const fTel = el("input", { id: "fTl" + c.cod, value: i.telefone || "", autocomplete: "off", inputmode: "tel", placeholder: "WhatsApp ou outro telefone" });
+  const fMail = el("input", { id: "fEm" + c.cod, value: i.email || "", autocomplete: "off", inputmode: "email", placeholder: "outro e-mail" });
+  const fExp = el("textarea", { id: "fEx" + c.cod, placeholder: "Um produto por linha. Ex.: Home Pinifarina Plus 3000 - Cinamomo" }, i.expostos || "");
+  const fDes = el("textarea", { id: "fDe" + c.cod, placeholder: "Ex.: 5% na tabela MG/RJ até dezembro, aprovado pelo Inácio" }, i.descontos || "");
+  const fObs = el("textarea", { id: "fOb" + c.cod, placeholder: "Anotações sobre o cliente" }, i.obs || "");
+  const gravar = async () => {
+    if (ocupado) return; ocupado = true;
+    try { const r = await chamar("api_salvar_cliente", { p_token: token, p_cod: c.cod, p_dados: { contato: fContato.value.trim(), telefone: fTel.value.trim(), email: fMail.value.trim(),
+        expostos: fExp.value.trim(), descontos: fDes.value.trim(), obs: fObs.value.trim(), rep_cod: Number(sRep.value) || 0 } });
+      if (!r || r.erro) throw new Error("erro"); toast("Ficha de " + titulo(c.razao) + " gravada"); ocupado = false; const ab = c.cod; await carregarCli(); cli.aberto = ab; render(); return; }
+    catch (e) { toast("Não consegui gravar agora."); }
+    ocupado = false;
+  };
+  return el("div", { class: "ficha" },
+    el("div", { class: "fichaDados" }, dado("Fantasia", titulo(c.fantasia)), dado("CNPJ / CPF", c.doc), dado("Inscrição", c.ie), dado("Telefone (ERP)", c.telefone), dado("E-mail (ERP)", c.email),
+      dado("Contato (ERP)", titulo(c.contato)), dado("Endereço", [titulo(c.endereco), titulo(c.bairro)].filter(Boolean).join(" · ")), dado("Cidade", [titulo(c.cidade), c.uf, c.cep].filter(Boolean).join(" · ")),
+      dado("Região", titulo(c.regiao)), dado("Cliente desde", c.cadastro)),
+    campo("fRep" + c.cod, "Representante que atende este cliente", sRep),
+    el("div", { class: "campos" }, campo("fCt" + c.cod, "Contato na loja", fContato), campo("fTl" + c.cod, "Telefone / WhatsApp", fTel), campo("fEm" + c.cod, "E-mail", fMail)),
+    campo("fEx" + c.cod, "Produtos expostos na loja", fExp), campo("fDe" + c.cod, "Descontos concedidos", fDes), campo("fOb" + c.cod, "Observações", fObs),
+    el("div", { class: "direita" }, el("button", { class: "bt forte", type: "button", onclick: gravar }, "Gravar ficha"),
+      el("span", { style: "font-size:12px;color:var(--ink-3)" }, i.em ? "Última alteração em " + quandoBR(i.em) + " por " + (i.por || "?") : "Ficha ainda não preenchida")));
 }
 const quandoBR = (t) => new Date(t).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", " às");
 function haQuanto(t, agora) {
@@ -250,12 +375,15 @@ function haQuanto(t, agora) {
 function descreve(e) {
   const d = e.detalhe || {}, pc = (n) => fmt(n) + " pç";
   const item = () => [d.qtd != null ? pc(d.qtd) : null, d.produto ? titulo(d.produto) : null, d.cor ? titulo(d.cor) : null].filter(Boolean).join(" · ");
-  if (e.acao === "acesso") return "abriu a tela " + (d.tela === "gerente" ? "do gerente" : "da pronta entrega");
+  if (e.acao === "acesso") return "abriu a tela " + (d.tela === "gerente" ? "do gerente" : d.tela === "clientes" ? "de clientes" : "da pronta entrega");
+  if (e.acao === "importou clientes") return fmt(d.clientes) + " clientes" + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
+  if (e.acao === "atualizou cliente") return (d.cliente || "") + " · cód. " + d.cod;
+  if (e.acao === "trocou representante do cliente") return (d.cliente || "") + " · passou para " + (d.para ? (d.para_nome || "código " + d.para) + " (" + d.para + ")" : "o representante do ERP");
   if (e.acao === "reservou") return item() + (d.antes ? " (tinha " + pc(d.antes) + ")" : "");
   if (e.acao === "cancelou reserva") return item();
   if (e.acao === "marcou como pedido" || e.acao === "desmarcou pedido") return "reserva de " + (d.representante || "?") + " · " + item();
   if (e.acao === "publicou pronta entrega") return fmt(d.itens) + " produtos" + (d.estoque ? " · estoque de " + d.estoque : "") + (d.pedidos ? " · pedidos de " + d.pedidos : "");
-  if (/representante$/.test(e.acao)) return (d.representante || "") + (d.regiao ? " · " + d.regiao : "");
+  if (/representante$/.test(e.acao)) return (d.representante || "") + (d.regiao ? " · " + d.regiao : "") + (d.codigo ? " · cód. " + d.codigo : "") + (d.extras && d.extras.length ? " · também vê " + d.extras.join(", ") : "");
   return "";
 }
 function renderAud() {
@@ -370,9 +498,10 @@ function renderReps() {
     .sort((a, b) => (b.ativo - a.ativo) || String(a.nome).localeCompare(String(b.nome)));
   const nome = el("input", { id: "novoNome", placeholder: "Nome do representante", autocomplete: "off" });
   const regiao = el("input", { id: "novaRegiao", placeholder: "Região", autocomplete: "off" });
+  const codigo = el("input", { id: "novoCodigo", placeholder: "Código no ERP", autocomplete: "off", inputmode: "numeric", style: "max-width:150px" });
   const cadastrar = async () => {
     const n = nome.value.trim(); if (!n || ocupado) return; ocupado = true;
-    try { reps = await chamar("api_salvar_representante", { p_token: token, p_id: null, p_nome: n, p_regiao: regiao.value.trim(), p_ativo: true }); toast(n + " cadastrado. Copie o link dele."); }
+    try { reps = await chamar("api_salvar_representante", { p_token: token, p_id: null, p_nome: n, p_regiao: regiao.value.trim(), p_ativo: true, p_codigo: Number(codigo.value.replace(/\D/g, "")) || null, p_extras: "" }); toast(n + " cadastrado. Copie o link dele."); }
     catch (e) { toast("Não consegui cadastrar agora."); }
     ocupado = false; render();
   };
@@ -386,22 +515,39 @@ function renderReps() {
       ocupado = false; render();
     };
     const copiar = () => { try { navigator.clipboard.writeText(link); toast("Link de " + r.nome + " copiado"); } catch (e) { toast("Copie o link na mão."); } };
+    const iCod = el("input", { id: "cod" + r.id, inputmode: "numeric", autocomplete: "off", value: r.codigo || "", placeholder: "sem código" });
+    const iExt = el("input", { id: "ext" + r.id, inputmode: "numeric", autocomplete: "off", value: (r.codigos_extra || []).join(", "), placeholder: "nenhum" });
+    const gravarAcesso = async () => {
+      if (ocupado) return; ocupado = true;
+      try { reps = await chamar("api_salvar_representante", { p_token: token, p_id: r.id, p_nome: r.nome, p_regiao: r.regiao, p_ativo: r.ativo,
+          p_codigo: Number(iCod.value.replace(/\D/g, "")) || 0, p_extras: iExt.value });
+        toast("Acesso de " + r.nome + " gravado"); }
+      catch (e) { toast("Não consegui gravar agora."); }
+      ocupado = false; render();
+    };
+    const acesso = el("div", { class: "acessoRep" },
+      el("div", { class: "campo" }, el("label", { for: "cod" + r.id }, "Código no ERP"), iCod),
+      el("div", { class: "campo" }, el("label", { for: "ext" + r.id }, "Também vê os códigos"), iExt),
+      el("button", { class: "bt", type: "button", onclick: gravarAcesso }, "Gravar acesso"));
     return el("div", { class: "rep" + (r.ativo ? "" : " bloq") },
       el("div", null, el("div", { class: "resNome" }, r.nome),
         el("div", { class: "resSub" }, r.regiao || "sem região",
+          el("span", null, r.codigo ? "cód. " + r.codigo + " · " + fmt(r.clientes) + (r.clientes === 1 ? " cliente" : " clientes") + (r.clientes_extra ? " + " + fmt(r.clientes_extra) + " de outros" : "") : "sem código: não vê clientes"),
           el("span", { class: "etq " + (r.ativo ? "linha" : "fora") }, r.ativo ? "Ativo" : "Bloqueado"),
           el("span", null, r.ultimo_acesso ? "entrou " + new Date(r.ultimo_acesso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "nunca entrou"))),
       el("div", { class: "direita" }, el("button", { class: "bt", type: "button", onclick: alternar }, r.ativo ? "Bloquear" : "Liberar")),
-      el("div", { class: "repLink" }, el("button", { class: "bt", type: "button", onclick: copiar }, "Copiar link pessoal"), el("code", null, link)));
+      el("div", { class: "repLink" }, el("button", { class: "bt", type: "button", onclick: copiar }, "Copiar link pessoal"), el("code", null, link)),
+      acesso);
   }) : [el("div", { class: "vazio" }, "Nenhum representante cadastrado ainda.")];
   $("#corpo").replaceChildren(
-    el("div", { class: "cad" }, nome, regiao, el("button", { class: "bt forte", type: "button", onclick: cadastrar }, "Cadastrar")),
+    el("div", { class: "cad" }, nome, regiao, codigo, el("button", { class: "bt forte", type: "button", onclick: cadastrar }, "Cadastrar")),
+    el("div", { class: "nota" }, "O código é o do consultor no ERP: é ele que liga o representante aos clientes dele. Em \"Também vê os códigos\" você libera os clientes de outros representantes, separando os códigos por vírgula."),
     ...blocos);
 }
 
 if (token) carregar(); else telaEntrar();
-document.addEventListener("visibilitychange", () => { if (!document.hidden && token && montado && !ocupado) carregar(); });
-setInterval(() => { if (!document.hidden && token && montado && !ocupado && !/^(INPUT|SELECT)$/.test((document.activeElement || {}).tagName || "")) carregar(); }, 90000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && token && montado && !ocupado && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps") carregar(); });
+setInterval(() => { if (!document.hidden && token && montado && !ocupado && !/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "") && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps") carregar(); }, 90000);
 </script>
 </body>
 </html>
