@@ -126,18 +126,19 @@ function blocoVendas(cod) {
   let ant = null;
   const linhas = v.compras.map((c) => { const ch = c.em + "-" + c.pedido, novo = ch !== ant; ant = ch;
     return el("tr", { class: novo ? "g" : null }, el("td", { class: "d" }, novo ? dataISO(c.em) : ""), el("td", { class: "m" }, novo ? String(c.pedido) : ""),
-      el("td", null, c.produto, c.cor ? el("div", { class: "m" }, c.cor) : null, novo && c.status ? el("div", { class: "m" }, c.status) : null),
+      el("td", null, c.produto, c.cor ? el("div", { class: "m" }, c.cor) : null, novo ? el("div", { class: "m" }, c.entrega ? "Faturado em " + dataISO(c.entrega) + (c.carga && c.carga !== "0" ? " · carga " + c.carga : "") + (c.nf && c.nf !== "0" ? " · NF " + c.nf : "")
+        : "Em aberto" + (c.carga && c.carga !== "0" ? " · carga " + c.carga + (c.previsao ? " · previsão " + c.previsao.slice(6, 8) + "/" + c.previsao.slice(4, 6) : "") : " · sem carga")) : null),
       el("td", { class: "n" }, fmt(c.qtd)), el("td", { class: "n" }, brl(c.valor))); });
   return [el("div", { class: "vtit" }, "Compras do cliente"),
     el("div", { class: "vk" },
-      el("div", null, el("b", null, "Desde jan/2025"), el("strong", null, brl(v.total)), el("small", null, fmt(v.pedidos) + (v.pedidos === 1 ? " pedido" : " pedidos") + " · primeira em " + dataISO(v.primeira))),
+      el("div", null, el("b", null, "Desde jan/2025"), el("strong", null, brl(v.total)), el("small", null, fmt(v.pedidos) + (v.pedidos === 1 ? " pedido" : " pedidos") + " · primeira em " + dataISO(v.primeira)), el("small", null, "faturado " + brl(v.faturado) + " · em aberto " + brl(v.aberto))),
       el("div", null, el("b", null, v.ano + " até " + ate), el("strong", null, brl(v.ano_atual)), el("small", { class: dif == null ? null : dif >= 0 ? "sobe" : "desce" }, varTxt)),
       el("div", null, el("b", null, "Ticket médio"), el("strong", null, brl(v.pedidos ? v.total / v.pedidos : 0)), el("small", null, "por pedido")),
       el("div", null, el("b", null, "Última compra"), el("strong", null, dataISO(v.ultima)), el("small", { class: dias > 180 ? "desce" : null }, dias <= 0 ? "no dia do último relatório" : "há " + fmt(dias) + (dias === 1 ? " dia" : " dias")))),
     el("div", { class: "vtit" }, "O que mais compra"),
     el("div", null, ...v.produtos.map((p) => el("div", { class: "vprod" }, el("span", null, p.produto), el("span", null, el("i", { style: "width:" + (p.valor / max * 100).toFixed(1) + "%" })), el("span", null, brl(p.valor) + " · " + fmt(p.qtd) + " un.")))),
-    el("div", { class: "vtit" }, "Compras por data"),
-    el("div", { class: "vtw" }, el("table", { class: "vt" }, el("thead", null, el("tr", null, el("th", null, "Data"), el("th", null, "Pedido"), el("th", null, "Produto e cor"), el("th", { class: "n" }, "Qtd."), el("th", { class: "n" }, "Valor"))), el("tbody", null, ...linhas))),
+    el("div", { class: "vtit" }, "Compras por data de emissão"),
+    el("div", { class: "vtw" }, el("table", { class: "vt" }, el("thead", null, el("tr", null, el("th", null, "Emissão"), el("th", null, "Pedido"), el("th", null, "Produto, cor e faturamento"), el("th", { class: "n" }, "Qtd."), el("th", { class: "n" }, "Valor"))), el("tbody", null, ...linhas))),
     aviso((v.linhas > v.compras.length ? "Mostrando os " + fmt(v.compras.length) + " itens mais recentes de " + fmt(v.linhas) + ". " : "") + rodape)];
 }
 let token = null, d = null, lista = [], busca = "", consultor = "", aberto = null, tempo = null, montado = false;

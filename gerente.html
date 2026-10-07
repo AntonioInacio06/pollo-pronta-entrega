@@ -210,65 +210,20 @@ function blocoVendas(cod) {
   let ant = null;
   const linhas = v.compras.map((c) => { const ch = c.em + "-" + c.pedido, novo = ch !== ant; ant = ch;
     return el("tr", { class: novo ? "g" : null }, el("td", { class: "d" }, novo ? dataISO(c.em) : ""), el("td", { class: "m" }, novo ? String(c.pedido) : ""),
-      el("td", null, c.produto, c.cor ? el("div", { class: "m" }, c.cor) : null, novo && c.status ? el("div", { class: "m" }, c.status) : null),
+      el("td", null, c.produto, c.cor ? el("div", { class: "m" }, c.cor) : null, novo ? el("div", { class: "m" }, c.entrega ? "Faturado em " + dataISO(c.entrega) + (c.carga && c.carga !== "0" ? " · carga " + c.carga : "") + (c.nf && c.nf !== "0" ? " · NF " + c.nf : "")
+        : "Em aberto" + (c.carga && c.carga !== "0" ? " · carga " + c.carga + (c.previsao ? " · previsão " + c.previsao.slice(6, 8) + "/" + c.previsao.slice(4, 6) : "") : " · sem carga")) : null),
       el("td", { class: "n" }, fmt(c.qtd)), el("td", { class: "n" }, brl(c.valor))); });
   return [el("div", { class: "vtit" }, "Compras do cliente"),
     el("div", { class: "vk" },
-      el("div", null, el("b", null, "Desde jan/2025"), el("strong", null, brl(v.total)), el("small", null, fmt(v.pedidos) + (v.pedidos === 1 ? " pedido" : " pedidos") + " · primeira em " + dataISO(v.primeira))),
+      el("div", null, el("b", null, "Desde jan/2025"), el("strong", null, brl(v.total)), el("small", null, fmt(v.pedidos) + (v.pedidos === 1 ? " pedido" : " pedidos") + " · primeira em " + dataISO(v.primeira)), el("small", null, "faturado " + brl(v.faturado) + " · em aberto " + brl(v.aberto))),
       el("div", null, el("b", null, v.ano + " até " + ate), el("strong", null, brl(v.ano_atual)), el("small", { class: dif == null ? null : dif >= 0 ? "sobe" : "desce" }, varTxt)),
       el("div", null, el("b", null, "Ticket médio"), el("strong", null, brl(v.pedidos ? v.total / v.pedidos : 0)), el("small", null, "por pedido")),
       el("div", null, el("b", null, "Última compra"), el("strong", null, dataISO(v.ultima)), el("small", { class: dias > 180 ? "desce" : null }, dias <= 0 ? "no dia do último relatório" : "há " + fmt(dias) + (dias === 1 ? " dia" : " dias")))),
     el("div", { class: "vtit" }, "O que mais compra"),
     el("div", null, ...v.produtos.map((p) => el("div", { class: "vprod" }, el("span", null, p.produto), el("span", null, el("i", { style: "width:" + (p.valor / max * 100).toFixed(1) + "%" })), el("span", null, brl(p.valor) + " · " + fmt(p.qtd) + " un.")))),
-    el("div", { class: "vtit" }, "Compras por data"),
-    el("div", { class: "vtw" }, el("table", { class: "vt" }, el("thead", null, el("tr", null, el("th", null, "Data"), el("th", null, "Pedido"), el("th", null, "Produto e cor"), el("th", { class: "n" }, "Qtd."), el("th", { class: "n" }, "Valor"))), el("tbody", null, ...linhas))),
+    el("div", { class: "vtit" }, "Compras por data de emissão"),
+    el("div", { class: "vtw" }, el("table", { class: "vt" }, el("thead", null, el("tr", null, el("th", null, "Emissão"), el("th", null, "Pedido"), el("th", null, "Produto, cor e faturamento"), el("th", { class: "n" }, "Qtd."), el("th", { class: "n" }, "Valor"))), el("tbody", null, ...linhas))),
     aviso((v.linhas > v.compras.length ? "Mostrando os " + fmt(v.compras.length) + " itens mais recentes de " + fmt(v.linhas) + ". " : "") + rodape)];
-}
-function numBR(t) { return parseFloat(String(t).replace(/\./g, "").replace(",", ".")); }
-function tit(t) { return String(t).toLowerCase().replace(/(^|[^\p{L}])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()); }
-function esp(t) { return String(t).replace(/\s+/g, " ").trim(); }
-function catDe(d) { const w = d.split(/\s+/), a = w[0], b = w[1] || "";
-  if (["PAR","CADEIRA","POLTRONA","PUFF","BANQUETA","SOFA","NAMORADEIRA","RECAMIER","BANCO","CHAISE"].includes(a) && !(a === "SOFA" && b === "TABLE")) return "Cadeiras e estofados";
-  if (["MESA","TAMPO","BASE"].includes(a)) return "Mesas";
-  if (["BUFFET","CRISTALEIRA","COMODA","CÔMODA","BAR","ADEGA","APARADOR"].includes(a)) return "Buffets e cristaleiras";
-  if (a === "HOME") return "Homes"; if (a === "BANCADA") return "Bancadas";
-  if (["PAINEL","BIOMBO","MOLDURA","ESPELHO","ESTANTE","SOFA","NICHO","PRATELEIRA","CABECEIRA","MODULO","MÓDULO","RACK","TORRE"].includes(a)) return "Painéis e complementos";
-  if (a === "PROJETO") return "Projetos especiais"; return "Outros"; }
-function partes(d) { const m = /\s+-\s*|\s*-\s+/.exec(d); return m ? [d.slice(0, m.index), d.slice(m.index + m[0].length)] : [d, ""]; }
-function lerVendas(txt) {
-  const ROT = [["Cliente....:", "cliente"], ["Emissão...:", "emissao"], ["Estado.....:", "uf"], ["Status....:", "status"], ["Consultor..:", "consultor"], ["Classific.:", "classif"]];
-  const STAT = { "DOCUMENTO FATURADO": "Faturado", "DOCUMENTO FATURADO PARCIAL": "Faturado parcial", "DOCUMENTO EM CARGA": "Em carga", "DOCUMENTO LIBERADO": "Liberado", "PEDIDO DE VENDA - PROCESSADO": "Processado", "DOCUMENTO NAO PROCESSADO": "Não processado" };
-  const peds = []; let cur = null, itens = false, emissao = "";
-  for (const linha of txt.split(/\r?\n/)) {
-    const ne = linha.split(";").map((x) => x.trim()).filter(Boolean); if (!ne.length) continue;
-    if (!emissao) for (const x of ne) { const m = /^Emissão: (\d\d\/\d\d\/\d{4} \d\d:\d\d)/.exec(x); if (m) emissao = m[1]; }
-    if (ne[0].startsWith("Pedido:")) { cur = { pedido: ne[0].split(":")[1].trim(), itens: [] }; peds.push(cur); itens = false; continue; }
-    if (!cur) continue;
-    for (const [lab, k] of ROT) { if (k in cur) continue; const i = ne.findIndex((x) => x.startsWith(lab)); if (i < 0) continue; let v = i + 1 < ne.length ? ne[i + 1] : ""; if (k === "consultor" && /:$/.test(v)) v = ""; cur[k] = v; }
-    if (ne[0] === "Item") { itens = true; continue; }
-    if (ne[0].startsWith("Tipo Frete")) itens = false;
-    if (itens && /^\d[\d.]*$/.test(ne[0]) && ne.length >= 8) { const q = numBR(ne[4]), l = numBR(ne[ne.length - 1]); if (!isNaN(q) && !isNaN(l)) cur.itens.push([ne[1], q, l]); }
-  }
-  const linhas = [], pedidos = new Set();
-  for (const p of peds) { if (p.classif !== "VENDA" || !/^\d\d\/\d\d\/\d{4}$/.test(p.emissao || "")) continue;
-    const dn = p.emissao.slice(6) + p.emissao.slice(3, 5) + p.emissao.slice(0, 2), cod = Number((p.cliente || "").split(" - ")[0]); if (!cod) continue;
-    pedidos.add(p.pedido);
-    for (const [desc, q, l] of p.itens) { const pp = partes(desc); linhas.push([dn, Number(p.pedido), cod, p.uf || "", STAT[p.status] || p.status || "", tit(p.consultor || ""), tit(esp(pp[0])), pp[1] ? tit(esp(pp[1])) : "", catDe(desc), q, l]); } }
-  return { emissao: emissao, linhas: linhas, pedidos: pedidos.size };
-}
-async function importarVendas() {
-  const m = cli.impV; if (!m || ocupado) return; ocupado = true;
-  const lote = "v" + Date.now(), todas = m.linhas, passo = 1500;
-  try {
-    for (let i = 0; i < todas.length; i += passo) {
-      const fim = i + passo >= todas.length; cli.impV.msg = "Enviando " + fmt(Math.min(i + passo, todas.length)) + " de " + fmt(todas.length) + "…"; render();
-      const r = await chamar("api_importar_vendas", { p_token: token, p_dados: { lote: lote, linhas: todas.slice(i, i + passo), inicio: i === 0, fim: fim, total: todas.length, arquivo: m.arquivo, emissao: m.emissao } });
-      if (!r || r.erro) throw new Error(r && r.erro || "erro");
-    }
-    cli.impV = null; for (const k of Object.keys(vendasCache)) delete vendasCache[k];
-    toast(fmt(todas.length) + " itens de venda importados."); ocupado = false; await carregarCli(); return;
-  } catch (e) { cli.impV.msg = "A importação parou no meio e as vendas antigas foram mantidas. Tente de novo."; cli.impV.erro = true; }
-  ocupado = false; render();
 }
 let cli = { impV: null, d: null, lista: [], busca: "", consultor: "", aberto: null, imp: null, foco: false, t: null };
 let aud = null, audF = { de: "", ate: "", usuario: "", acao: "" };
@@ -387,7 +342,7 @@ function render() {
     .concat([["cli", "Clientes", cli.d ? cli.d.base : 0], ["aud", "Auditoria", aud ? aud.total : 0]])
     .map(([v, t, n]) => el("button", { role: "tab", type: "button", "aria-selected": String(aba === v),
       onclick: () => { aba = v; render(); if (v === "aud") carregarAud(); if (v === "cli") carregarCli(); } }, t, el("b", null, fmt(n)))),
-    el("a", { class: "painel", href: "https://claude.ai/artifact/PNpcpLENX9xw6U8WTZMPnQ", target: "_blank", rel: "noopener" }, "Painel Executivo ↗"),
+    el("a", { class: "painel", href: "painel.html" }, "Painel Executivo"),
     el("a", { class: "painel", href: "catalogo.html?de=gerente" }, "Catálogo"),
     el("a", { class: "ext", href: "https://claude.ai/artifact/R41KP89q4RFJ6yUgo16eRP", target: "_blank", rel: "noopener" }, "Gestão Comercial ↗"));
   $("#placar").replaceChildren(
@@ -411,24 +366,11 @@ function renderCli() {
   const topo = el("div", { class: "ferramentas" },
     el("span", { style: "font-size:12.5px;color:var(--ink-2);flex:1;min-width:200px" }, d.base ? fmt(d.base) + " clientes na base · " + (at ? "atualizada em " + quandoBR(at.em) + " por " + (at.por || "?") + (at.emissao ? " (relatório do ERP de " + at.emissao + ")" : "") : "sem data de importação") : "Nenhum cliente importado ainda."),
     arq, el("button", { class: "bt forte", type: "button", onclick: () => arq.click() }, d.base ? "Atualizar clientes pelo ERP" : "Importar clientes do ERP"));
-  const arqV = el("input", { type: "file", id: "arqVendas", accept: ".csv,.json,text/csv,application/json", hidden: true });
-  arqV.addEventListener("change", () => { const f = arqV.files && arqV.files[0]; if (!f) return; const fr = new FileReader(), json = /\.json$/i.test(f.name);
-    fr.onload = () => { let r = null; try { if (json) { const j = JSON.parse(String(fr.result)); if (j && j.tipo === "vendas-pollo") r = { emissao: j.emissao || "", linhas: j.linhas, pedidos: new Set(j.linhas.map((x) => x[1])).size }; } else r = lerVendas(String(fr.result)); } catch (e) {}
-      if (!r || !r.linhas || !r.linhas.length) cli.impV = { erro: true, msg: "Não reconheci este arquivo. Use o Relatório de Documentos Analítico do ERP, exportado em CSV." };
-      else { const ds = r.linhas.map((x) => String(x[0])).sort(); cli.impV = { linhas: r.linhas, emissao: r.emissao, arquivo: f.name, pedidos: r.pedidos, de: ds[0], ate: ds[ds.length - 1] }; }
-      render(); };
-    fr.readAsText(f, json ? "UTF-8" : "ISO-8859-1"); });
-  const dn = (x) => x.slice(6, 8) + "/" + x.slice(4, 6) + "/" + x.slice(0, 4), vd = d.vendas;
+  const vd = d.vendas;
   const topoV = el("div", { class: "ferramentas", style: "padding-top:0" },
-    el("span", { style: "font-size:12.5px;color:var(--ink-2);flex:1;min-width:200px" }, vd && vd.linhas ? "Vendas até " + dataBR(vd.ate) + " · " + fmt(vd.linhas) + " itens · atualizadas em " + quandoBR(vd.em) + " por " + (vd.por || "?") + (vd.emissao ? " (relatório do ERP de " + vd.emissao + ")" : "") : "Histórico de vendas ainda não carregado. Sem ele a ficha do cliente não mostra as compras."),
-    arqV, el("button", { class: "bt forte", type: "button", onclick: () => arqV.click() }, vd && vd.linhas ? "Atualizar vendas pelo ERP" : "Carregar vendas"));
+    el("span", { style: "font-size:12.5px;color:var(--ink-2);flex:1;min-width:200px" }, vd && vd.linhas ? "Vendas até " + dataBR(vd.ate) + " · " + fmt(vd.linhas) + " pedidos · atualizadas em " + quandoBR(vd.em) + " por " + (vd.por || "?") + (vd.emissao ? " (relatório do ERP de " + vd.emissao + ")" : "") : "Histórico de vendas ainda não carregado. Sem ele a ficha do cliente não mostra as compras."),
+    el("a", { class: "bt", href: "painel.html", style: "text-decoration:none" }, "Atualizar vendas no Painel Executivo"));
   const blocos = [topo, topoV];
-  if (cli.impV) blocos.push(el("div", { class: "nota" }, cli.impV.linhas && !cli.impV.msg ? "Arquivo " + cli.impV.arquivo + ": " + fmt(cli.impV.linhas.length) + " itens de " + fmt(cli.impV.pedidos) + " pedidos, de " + dn(cli.impV.de) + " a " + dn(cli.impV.ate) + (cli.impV.emissao ? ", emitido em " + cli.impV.emissao : "") + ". As vendas desse período são trocadas pelas do arquivo; o resto fica como está. " : (cli.impV.msg || "") + " ",
-    cli.impV.linhas && !cli.impV.msg ? el("button", { class: "bt forte", type: "button", onclick: importarVendas }, "Importar agora") : null, " ",
-    !ocupado ? el("button", { class: "bt", type: "button", onclick: () => { cli.impV = null; render(); } }, cli.impV.linhas && !cli.impV.erro ? "Cancelar" : "Fechar") : null));
-  if (cli.imp) blocos.push(el("div", { class: "nota" }, cli.imp.clientes && !cli.imp.msg ? "Arquivo " + cli.imp.arquivo + ": " + fmt(cli.imp.clientes.length) + " clientes de " + fmt(cli.imp.consultores) + " consultores" + (cli.imp.emissao ? ", emitido em " + cli.imp.emissao : "") + ". A base atual é trocada por esta; o que os gerentes preencheram é mantido. " : (cli.imp.msg || "") + " ",
-    cli.imp.clientes && !cli.imp.msg ? el("button", { class: "bt forte", type: "button", onclick: importarClientes }, "Importar agora") : null, " ",
-    !ocupado ? el("button", { class: "bt", type: "button", onclick: () => { cli.imp = null; render(); } }, cli.imp.clientes && !cli.imp.erro ? "Cancelar" : "Fechar") : null));
   const bx = el("input", { type: "search", id: "cliBusca", placeholder: "Buscar por nome, cidade, CNPJ ou código", autocomplete: "off", autocapitalize: "none", spellcheck: "false", value: cli.busca });
   bx.addEventListener("input", () => { cli.busca = bx.value; clearTimeout(cli.t); cli.t = setTimeout(() => { cli.foco = true; cli.aberto = null; carregarCli(); }, 350); });
   const sel = el("select", { id: "cliCons", "aria-label": "Representante" }, el("option", { value: "" }, "Todos os representantes"),
@@ -492,9 +434,9 @@ function haQuanto(t, agora) {
 function descreve(e) {
   const d = e.detalhe || {}, pc = (n) => fmt(n) + " pç";
   const item = () => [d.qtd != null ? pc(d.qtd) : null, d.produto ? titulo(d.produto) : null, d.cor ? titulo(d.cor) : null].filter(Boolean).join(" · ");
-  if (e.acao === "acesso") return "abriu a tela " + (d.tela === "gerente" ? "do gerente" : d.tela === "clientes" ? "de clientes" : "da pronta entrega");
+  if (e.acao === "acesso") return "abriu a tela " + (d.tela === "gerente" ? "do gerente" : d.tela === "clientes" ? "de clientes" : d.tela === "painel executivo" ? "do painel executivo" : "da pronta entrega");
   if (e.acao === "importou clientes") return fmt(d.clientes) + " clientes" + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
-  if (e.acao === "importou vendas") return fmt(d.linhas) + " itens de venda, de " + dataBR(d.de) + " a " + dataBR(d.ate) + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
+  if (e.acao === "importou vendas") return fmt(d.linhas) + " pedidos, emitidos de " + dataBR(d.de) + " a " + dataBR(d.ate) + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
   if (e.acao === "viu vendas do cliente") return (d.cliente || "") + " · cód. " + d.cod;
   if (e.acao === "atualizou cliente") return (d.cliente || "") + " · cód. " + d.cod;
   if (e.acao === "trocou representante do cliente") return (d.cliente || "") + " · passou para " + (d.para ? (d.para_nome || "código " + d.para) + " (" + d.para + ")" : "o representante do ERP");
@@ -665,8 +607,8 @@ function renderReps() {
 }
 
 if (token) carregar(); else telaEntrar();
-document.addEventListener("visibilitychange", () => { if (!document.hidden && token && montado && !ocupado && !(aba === "cli" && (cli.aberto || cli.imp || cli.impV)) && aba !== "reps") carregar(); });
-setInterval(() => { if (!document.hidden && token && montado && !ocupado && !/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "") && !(aba === "cli" && (cli.aberto || cli.imp || cli.impV)) && aba !== "reps") carregar(); }, 90000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && token && montado && !ocupado && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps") carregar(); });
+setInterval(() => { if (!document.hidden && token && montado && !ocupado && !/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "") && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps") carregar(); }, 90000);
 </script>
 </body>
 </html>
