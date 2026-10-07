@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1A1F1E">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<title>Catálogo · Pollo Decor</title>
+<style>
+:root{--surface:#FFFFFF;--ink:#1C2220;--ink-3:#7F8883;--line:#D8DBD4;--accent:#8F5329}
+@media (prefers-color-scheme: dark){:root{--surface:#1A1F1E;--ink:#E7EAE6;--ink-3:#838C88;--line:#333A37;--accent:#D38D5C}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;background:var(--surface);color:var(--ink);font:15px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif}
+.barra{flex:none;display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 8px;border-bottom:1px solid var(--line)}
+.barra a{display:inline-flex;align-items:center;min-height:40px;padding:0 13px;border:1px solid var(--accent);border-radius:10px;font-weight:600;font-size:14px;color:var(--accent);text-decoration:none;white-space:nowrap}
+.barra a.fora{border-color:var(--line);color:var(--ink-3);font-weight:500;margin-left:auto}
+.barra b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+iframe{flex:1;width:100%;border:0;min-height:0}
+</style>
+</head>
+<body>
+<div class="barra"><a id="voltar" href="./">← Voltar</a><b>Catálogo 2026</b><a class="fora" href="https://pollo-catalogo.hugolazevedo.workers.dev/" target="_blank" rel="noopener">Abrir em outra aba ↗</a></div>
+<iframe src="https://pollo-catalogo.hugolazevedo.workers.dev/" title="Catálogo Pollo Decor 2026" referrerpolicy="no-referrer"></iframe>
+<script>
+var de = new URLSearchParams(location.search).get("de");
+if (de === "gerente") document.getElementById("voltar").href = "gerente.html";
+</script>
+</body>
+</html>

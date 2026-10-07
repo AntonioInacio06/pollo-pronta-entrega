@@ -6,6 +6,7 @@ Cinco páginas, todas rodando no navegador de quem abre:
 - `gerente.html` — quem reservou, cadastro de representantes e links pessoais
 - `casamento.html` — a ferramenta do PCP (anexa estoque e pedidos, publica a pronta entrega)
 - `clientes.html` — carteira de clientes do representante (só os clientes do código dele; quem edita é o gerente, na aba Clientes)
+- `catalogo.html` — catálogo do colaborador aberto dentro do site, com botão Voltar
 - `gestao.html` — atalho para a Gestão Comercial (metas e representantes), que fica hospedada no Claude
 
 Dados no Supabase (projeto "Pollo Decor PCP"). Nenhuma página mostra preço.
