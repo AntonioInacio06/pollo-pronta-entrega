@@ -108,7 +108,24 @@ main{max-width:1100px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom,
 .entrar{max-width:420px;margin:48px auto;padding:0 18px;display:grid;gap:12px}
 .entrar input{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .entrar button{padding:14px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:600 16px var(--f-disp)}
+[hidden]{display:none!important}
+.ferramentas select{padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--muted);max-width:100%}
+.ferramentas label{font-size:12px;color:var(--ink-3)}
+.secao{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:16px 14px 7px;font:700 12px/1.2 var(--f-disp);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.secao span{font:400 11.5px var(--f-body);letter-spacing:0;text-transform:none}
+.uso{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:11px 14px;background:var(--surface);border-bottom:1px solid var(--line-2);width:100%;border-left:0;border-right:0;border-top:0;text-align:left}
+.uso[aria-pressed="true"]{background:var(--accent-soft)}
+.usoQuando{text-align:right;font:600 13px/1.25 var(--f-mono);white-space:nowrap}
+.usoQuando small{display:block;font:400 11.5px var(--f-body);color:var(--ink-3)}
+.etq.crit{background:var(--crit-bg);color:var(--crit)}
+.diaTit{padding:12px 14px 6px;font:600 12.5px var(--f-mono);color:var(--ink-2);background:var(--bg)}
+.ev{display:grid;grid-template-columns:48px 1fr;gap:10px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line-2)}
+.ev time{font:600 12.5px/1.5 var(--f-mono);color:var(--ink-2)}
+.evQuem{font:600 14px/1.3 var(--f-body)}
+.evQue{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.rodapeAud{padding:14px;font-size:12px;color:var(--ink-3);line-height:1.5}
 @media (hover:hover) and (pointer:fine){
+  .uso:hover{background:var(--muted)}
   .bt:hover{border-color:var(--accent)}
   .chip:hover{border-color:var(--accent)}
 }
@@ -137,6 +154,7 @@ const hora = (t) => new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", m
 const dataBR = (d) => { const p = String(d || "").split("-"); return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : String(d || ""); };
 const LINK_APP = location.origin + location.pathname.replace(/gerente(\.html)?$/, "");
 
+let aud = null, audF = { de: "", ate: "", usuario: "", acao: "" };
 let token = null, aba = "reservas", filtro = "pendentes", busca = "", reservas = null, reps = null, dia = null, montado = false, ocupado = false;
 try { token = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("pe-gerente"); } catch (e) {}
 if (token && location.hash.indexOf("t=") >= 0) { try { localStorage.setItem("pe-gerente", token); } catch (e) {} history.replaceState(null, "", location.pathname); }
@@ -149,8 +167,17 @@ async function carregar() {
     if (r && r.erro) { montado = false; return telaEntrar("Este código não é de gerênte."); }
     reservas = r;
     reps = await chamar("api_representantes", { p_token: token });
+    if (aba === "aud" || !aud) await carregarAud(true);
   } catch (e) { toast("Sem conexão com o servidor."); if (!montado) return telaEntrar("Não consegui falar com o servidor. Tente de novo."); }
   if (!montado) montarTela(); else render();
+}
+async function carregarAud(quieto) {
+  try {
+    const r = await chamar("api_auditoria", { p_token: token, p_de: audF.de || null, p_ate: audF.ate || null,
+      p_usuario: audF.usuario ? Number(audF.usuario) : null, p_acao: audF.acao || null });
+    if (r && !r.erro) aud = r;
+  } catch (e) { if (!quieto) toast("Não consegui carregar a auditoria."); }
+  if (!quieto && montado) render();
 }
 function telaEntrar(erro) {
   montado = false;
@@ -173,11 +200,11 @@ function montarTela() {
   $("#app").replaceChildren(
     el("div", { class: "topo" },
       el("div", { class: "cabeca" },
-        el("div", null, el("div", { class: "marca" }, "Pollo Decor · Gerência"), el("h1", null, "Reservas do dia")),
+        el("div", null, el("div", { class: "marca" }, "Pollo Decor · Gerência"), el("h1", { id: "tituloTela" }, "Reservas do dia")),
         el("div", { class: "diaTxt", id: "diaTxt" })),
       el("div", { class: "abas", id: "abas" })),
     el("div", { class: "placar", id: "placar" }),
-    el("div", { class: "ferramentas" }, bx, dt,
+    el("div", { class: "ferramentas", id: "ferramentas" }, bx, dt,
       el("button", { class: "bt", type: "button", onclick: () => { dia = null; dt.value = ""; carregar(); } }, "Hoje"),
       el("button", { class: "bt", type: "button", onclick: () => carregar() }, "Atualizar")),
     el("div", { class: "chips", id: "chips" }),
@@ -194,10 +221,15 @@ function render() {
   const hoje = new Date().toISOString().slice(0, 10);
   const oDia = (reservas && reservas.dia) || hoje;
   $("#diaTxt").replaceChildren(document.createTextNode(oDia === hoje ? "Hoje, " + dataBR(oDia) : dataBR(oDia)),
-    el("br"), document.createTextNode("reserva sem pedido cai às 23h59"));
+    el("br"), document.createTextNode("reserva sem pedido cai às 23h59"),
+    ...(aud && aud.publicacao ? [el("br"), document.createTextNode("Pronta entrega atualizada em " + quandoBR(aud.publicacao.em) + (aud.publicacao.por ? " por " + aud.publicacao.por : ""))] : []));
+  const naAud = aba === "aud";
+  $("#tituloTela").textContent = naAud ? "Auditoria do sistema" : aba === "reps" ? "Representantes" : "Reservas do dia";
+  $("#placar").hidden = naAud; $("#ferramentas").hidden = naAud; $("#chips").hidden = naAud;
   $("#abas").replaceChildren(...[["reservas", "Reservas", linhas.length], ["reps", "Representantes", (reps || []).filter((r) => r.papel === "representante").length]]
+    .concat([["aud", "Auditoria", aud ? aud.total : 0]])
     .map(([v, t, n]) => el("button", { role: "tab", type: "button", "aria-selected": String(aba === v),
-      onclick: () => { aba = v; render(); } }, t, el("b", null, fmt(n)))),
+      onclick: () => { aba = v; render(); if (v === "aud") carregarAud(); } }, t, el("b", null, fmt(n)))),
     el("a", { class: "painel", href: "https://claude.ai/artifact/PNpcpLENX9xw6U8WTZMPnQ", target: "_blank", rel: "noopener" }, "Painel Executivo ↗"),
     el("a", { class: "painel", href: "https://pollo-catalogo.hugolazevedo.workers.dev/", target: "_blank", rel: "noopener" }, "Catálogo ↗"),
     el("a", { class: "ext", href: "https://claude.ai/artifact/R41KP89q4RFJ6yUgo16eRP", target: "_blank", rel: "noopener" }, "Gestão Comercial ↗"));
@@ -206,7 +238,79 @@ function render() {
     el("div", null, el("div", { class: "rot" }, "Virou pedido"), el("div", { class: "val ped" }, fmt(ped)), el("div", { class: "un" }, "peças")),
     el("div", null, el("div", { class: "rot" }, "Aguardando"), el("div", { class: "val pend" }, fmt(pc - ped)), el("div", { class: "un" }, "peças · caem hoje")),
     el("div", null, el("div", { class: "rot" }, "Representantes"), el("div", { class: "val" }, fmt(pessoas)), el("div", { class: "un" }, "reservaram")));
-  if (aba === "reservas") renderReservas(linhas); else renderReps();
+  if (aba === "reservas") renderReservas(linhas); else if (aba === "reps") renderReps(); else renderAud();
+}
+const quandoBR = (t) => new Date(t).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", " às");
+function haQuanto(t, agora) {
+  const min = Math.max(0, Math.round((new Date(agora) - new Date(t)) / 60000));
+  if (min < 2) return "agora"; if (min < 60) return "há " + min + " min";
+  const h = Math.round(min / 60); if (h < 24) return "há " + h + " h";
+  const d = Math.round(h / 24); return "há " + d + (d === 1 ? " dia" : " dias");
+}
+function descreve(e) {
+  const d = e.detalhe || {}, pc = (n) => fmt(n) + " pç";
+  const item = () => [d.qtd != null ? pc(d.qtd) : null, d.produto ? titulo(d.produto) : null, d.cor ? titulo(d.cor) : null].filter(Boolean).join(" · ");
+  if (e.acao === "acesso") return "abriu a tela " + (d.tela === "gerente" ? "do gerente" : "da pronta entrega");
+  if (e.acao === "reservou") return item() + (d.antes ? " (tinha " + pc(d.antes) + ")" : "");
+  if (e.acao === "cancelou reserva") return item();
+  if (e.acao === "marcou como pedido" || e.acao === "desmarcou pedido") return "reserva de " + (d.representante || "?") + " · " + item();
+  if (e.acao === "publicou pronta entrega") return fmt(d.itens) + " produtos" + (d.estoque ? " · estoque de " + d.estoque : "") + (d.pedidos ? " · pedidos de " + d.pedidos : "");
+  if (/representante$/.test(e.acao)) return (d.representante || "") + (d.regiao ? " · " + d.regiao : "");
+  return "";
+}
+function renderAud() {
+  const corpo = $("#corpo");
+  if (!aud) { corpo.replaceChildren(el("div", { class: "vazio" }, "Carregando a auditoria…")); return; }
+  const agora = aud.agora, hojeSP = new Date(agora).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const diaDe = (t) => new Date(t).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const us = aud.usuarios || [], ativos = us.filter((u) => u.ativo);
+  const hojeN = ativos.filter((u) => u.ultimo_acesso && diaDe(u.ultimo_acesso) === hojeSP).length;
+  const semN = ativos.filter((u) => u.ultimo_acesso && (new Date(agora) - new Date(u.ultimo_acesso)) <= 7 * 864e5).length;
+  const nunca = ativos.filter((u) => !u.ultimo_acesso).length;
+  const placar = el("div", { class: "placar" },
+    el("div", null, el("div", { class: "rot" }, "Entraram hoje"), el("div", { class: "val ped" }, fmt(hojeN)), el("div", { class: "un" }, "de " + fmt(ativos.length) + " ativos")),
+    el("div", null, el("div", { class: "rot" }, "Entraram em 7 dias"), el("div", { class: "val" }, fmt(semN)), el("div", { class: "un" }, "usuários")),
+    el("div", null, el("div", { class: "rot" }, "Nunca entraram"), el("div", { class: "val pend" }, fmt(nunca)), el("div", { class: "un" }, "usuários ativos")),
+    el("div", null, el("div", { class: "rot" }, "Registros"), el("div", { class: "val" }, fmt(aud.total)), el("div", { class: "un" }, "no período filtrado")));
+  const opc = (v, t, sel) => el("option", { value: v, selected: String(sel) === String(v) ? true : null }, t);
+  const sUs = el("select", { id: "audUsuario", "aria-label": "Usuário" }, opc("", "Todos os usuários", audF.usuario),
+    ...us.slice().sort((a, b) => String(a.nome).localeCompare(String(b.nome))).map((u) => opc(u.id, u.nome + (u.papel === "gerente" ? " (gerente)" : ""), audF.usuario)));
+  const sAc = el("select", { id: "audAcao", "aria-label": "Ação" }, opc("", "Todas as ações", audF.acao), ...(aud.acoes || []).slice().sort().map((a) => opc(a, a.charAt(0).toUpperCase() + a.slice(1), audF.acao)));
+  const dDe = el("input", { type: "date", id: "audDe", value: audF.de || aud.de, "aria-label": "De" });
+  const dAte = el("input", { type: "date", id: "audAte", value: audF.ate || aud.ate, "aria-label": "Até" });
+  sUs.addEventListener("change", () => { audF.usuario = sUs.value; carregarAud(); });
+  sAc.addEventListener("change", () => { audF.acao = sAc.value; carregarAud(); });
+  dDe.addEventListener("change", () => { audF.de = dDe.value; carregarAud(); });
+  dAte.addEventListener("change", () => { audF.ate = dAte.value; carregarAud(); });
+  const filtros = el("div", { class: "ferramentas" }, sUs, sAc, el("label", { for: "audDe" }, "de"), dDe, el("label", { for: "audAte" }, "até"), dAte,
+    el("button", { class: "bt", type: "button", onclick: () => { audF = { de: "", ate: "", usuario: "", acao: "" }; carregarAud(); } }, "Limpar filtros"),
+    el("button", { class: "bt", type: "button", onclick: () => carregarAud() }, "Atualizar"));
+  const estado = (u) => !u.ativo ? ["fora", "Bloqueado"] : !u.ultimo_acesso ? ["crit", "Nunca entrou"]
+    : diaDe(u.ultimo_acesso) === hojeSP ? ["linha", "Hoje"] : (new Date(agora) - new Date(u.ultimo_acesso)) <= 7 * 864e5 ? ["fora", "Esta semana"] : ["lum", "Parado"];
+  const usoLinhas = us.map((u) => { const [c, t] = estado(u);
+    return el("button", { class: "uso", type: "button", "aria-pressed": String(String(audF.usuario) === String(u.id)),
+      onclick: () => { audF.usuario = String(audF.usuario) === String(u.id) ? "" : String(u.id); carregarAud(); } },
+      el("div", null, el("div", { class: "resNome" }, u.nome),
+        el("div", { class: "resSub" }, u.regiao || "sem região", el("span", { class: "etq " + c }, t), u.papel === "gerente" ? el("span", { class: "etq fora" }, "Gerente") : null,
+          el("span", null, fmt(u.acessos_7d) + (u.acessos_7d === 1 ? " acesso" : " acessos") + " em 7 dias"),
+          u.papel === "gerente" ? null : el("span", null, fmt(u.reservas_30d) + (u.reservas_30d === 1 ? " reserva" : " reservas") + " em 30 dias" + (u.ultima_reserva ? " · última em " + quandoBR(u.ultima_reserva) : "")))),
+      el("div", { class: "usoQuando" }, u.ultimo_acesso ? quandoBR(u.ultimo_acesso) : "—", el("small", null, u.ultimo_acesso ? haQuanto(u.ultimo_acesso, agora) : "sem acesso")));
+  });
+  const evs = aud.eventos || [], blocos = []; let diaAtual = null;
+  const corAcao = (a) => a === "acesso" ? "fora" : /cancelou|bloqueou|desmarcou/.test(a) ? "lum" : "linha";
+  for (const e of evs) {
+    const d = diaDe(e.em);
+    if (d !== diaAtual) { diaAtual = d; blocos.push(el("div", { class: "diaTit" }, (d === hojeSP ? "Hoje, " : "") + dataBR(d))); }
+    blocos.push(el("div", { class: "ev" }, el("time", null, hora(e.em)),
+      el("div", null, el("div", { class: "evQuem" }, e.usuario || "sem identificação"),
+        el("div", { class: "evQue" }, el("span", { class: "etq " + corAcao(e.acao) }, e.acao), el("span", null, descreve(e))))));
+  }
+  corpo.replaceChildren(placar, filtros,
+    el("div", { class: "secao" }, "Último uso do site", el("span", null, "toque em um nome para filtrar os registros")), ...usoLinhas,
+    el("div", { class: "secao" }, "O que aconteceu", el("span", null, "de " + dataBR(aud.de) + " a " + dataBR(aud.ate) + " · " + fmt(aud.total) + (aud.total === 1 ? " registro" : " registros"))),
+    ...(blocos.length ? blocos : [el("div", { class: "vazio" }, "Nenhum registro com estes filtros.")]),
+    el("div", { class: "rodapeAud" }, (aud.total > evs.length ? "Mostrando os " + fmt(evs.length) + " registros mais recentes de " + fmt(aud.total) + ". Reduza o período para ver os demais. " : "")
+      + "O registro completo começou em 07/10/2026. Antes disso aparecem só publicações e reservas. Acessos seguidos do mesmo usuário são gravados no máximo uma vez a cada 30 minutos."));
 }
 function renderReservas(linhas) {
   const conta = { tudo: linhas.length, pendentes: linhas.filter((l) => !l.virou_pedido).length, pedidos: linhas.filter((l) => l.virou_pedido).length };
@@ -297,7 +401,7 @@ function renderReps() {
 
 if (token) carregar(); else telaEntrar();
 document.addEventListener("visibilitychange", () => { if (!document.hidden && token && montado && !ocupado) carregar(); });
-setInterval(() => { if (!document.hidden && token && montado && !ocupado) carregar(); }, 90000);
+setInterval(() => { if (!document.hidden && token && montado && !ocupado && !/^(INPUT|SELECT)$/.test((document.activeElement || {}).tagName || "")) carregar(); }, 90000);
 </script>
 </body>
 </html>
