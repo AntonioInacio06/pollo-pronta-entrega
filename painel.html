@@ -127,6 +127,11 @@ main{padding-block:22px 56px;display:grid;gap:18px}
 .bars span{display:block;height:10px;border-radius:0 4px 4px 0;background:var(--y26);min-width:2px}
 .bars span.p{height:4px;background:var(--y25);border-radius:0 2px 2px 0}
 .bars span.z{background:transparent}
+.bars span.f{background:var(--fat)}
+.row.rm{grid-template-columns:minmax(120px,1.15fr) minmax(80px,1.4fr) 104px 104px}
+.row.rm .d{font-weight:600;white-space:nowrap}
+.row.tot{border-top:2px solid var(--line);font-weight:600}
+.row.tot:hover{background:none}
 .rank{display:inline-block;width:22px;color:var(--ink-3);font-size:12px}
 .more{margin-top:12px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:600;cursor:pointer}
 .note{margin:12px 0 0;font-size:12.5px;color:var(--ink-3)}
@@ -321,11 +326,12 @@ function calcular(){
   R.mensal[ANO] = new Array(12).fill(0); R.mensal[ANT] = new Array(12).fill(0);
   var ini = ANO*10000 + S.a*100, MM = mesMeta();
   function add(o, k, i, v){ var x = o[k] || (o[k] = [0,0]); x[i] += v; }
-  R.vf = {ven:new Array(12).fill(0), fat:new Array(12).fill(0)};
+  R.vf = {ven:new Array(12).fill(0), fat:new Array(12).fill(0)}; R.repMes = {};
   D.i.forEach(function(t){ var o = D.o[t[0]], em = o[0], r = o[1], u = o[2], c = o[3], v = t[4];
     var okR = S.rep < 0 || r === S.rep, okU = S.uf < 0 || u === S.uf, okC = S.cat < 0 || t[1] === S.cat;
     /* meta e situação do mês são sempre por emissão */
     if (Math.floor(em/10000) === ANO && Math.floor(em/100) % 100 === MM && okU && okC){ R.setRep[r] = (R.setRep[r] || 0) + v; if (okR){ R.setTot += v; R.st[o[5]] = (R.st[o[5]] || 0) + v; } }
+    if (okU && okC){ if (Math.floor(em/10000) === ANO && Math.floor(em/100) % 100 === MM) add(R.repMes, r, 0, v); if (o[7] && Math.floor(o[7]/10000) === ANO && Math.floor(o[7]/100) % 100 === MM) add(R.repMes, r, 1, v); }
     if (okR && okU && okC){ if (Math.floor(em/10000) === ANO) R.vf.ven[Math.floor(em/100) % 100 - 1] += v; if (o[7] && Math.floor(o[7]/10000) === ANO) R.vf.fat[Math.floor(o[7]/100) % 100 - 1] += v; }
     var dn = DT(o); if (!dn) return;
     var y = Math.floor(dn/10000), m = Math.floor(dn/100) % 100;
@@ -487,6 +493,23 @@ function vfCard(R){ var g = card("Vendas × faturamento em " + A1, "Vendas pela 
     el("div", {class:"legend"}, el("span", null, el("i", {style:"background:var(--y26)"}), "Vendas (emissão)"), el("span", null, el("i", {style:"background:var(--fat)"}), "Faturamento (entrega)")));
   g.append(grafico({a:R.vf.ven, b:R.vf.fat, na:CUT_M, nb:CUT_M, ca:"--y26", cb:"--fat", la:"Vendas", lb:"Faturamento", fimA:"Vendas", fimB:"Faturamento", tracoA:PARCIAL, tracoB:PARCIAL, dif:"valor", sufixo:" de " + A1, aria:"Vendas e faturamento por mês em " + A1}));
   return g; }
+function repMesCard(R){ var M = mesMeta(), nomeM = MESL[M-1].toLowerCase(), aberto = M === CUT_M && PARCIAL;
+  var c = card("Vendido e faturado por representante em " + nomeM, (aberto ? "Até " + corte() + ". " : "") + "Vendeu = pedidos emitidos no mês. Faturou = entregas com data no mês, mesmo de pedidos de meses anteriores. Clique em um representante para filtrar o painel.",
+    el("div", {class:"legend"}, el("span", null, el("i", {class:"box", style:"background:var(--y26)"}), "Vendeu (emissão)"), el("span", null, el("i", {class:"box", style:"background:var(--fat)"}), "Faturou (entrega)")));
+  var ls = Object.keys(R.repMes).map(function(k){ return {k:+k, v:R.repMes[k][0], f:R.repMes[k][1]}; }).filter(function(x){ return x.v > 0.5 || x.f > 0.5; }).sort(function(a, z){ return z.v - a.v || z.f - a.f; });
+  if (!ls.length){ c.append(el("p", {class:"sub", text:"Sem venda nem faturamento em " + nomeM + " para este filtro."})); return c; }
+  var max = Math.max.apply(null, ls.map(function(x){ return Math.max(x.v, x.f); }).concat([1])), tv = 0, tf = 0, box = el("div", {class:"rows"});
+  box.append(el("div", {class:"row rm h"}, el("div", {text:"Representante"}), el("div", {text:"Vendeu e faturou"}), el("div", {class:"val", text:"Vendeu"}), el("div", {class:"d", text:"Faturou"})));
+  ls.forEach(function(x, n){ tv += x.v; tf += x.f; var nome = D.reps[x.k].n;
+    var r = el("div", {class:"row rm pick" + (S.rep === x.k ? " on" : ""), tabindex:"0", role:"button"}, el("div", {class:"n"}, el("div", {class:"t"}, el("span", {class:"rank num", text:(n+1) + "."}), nome)),
+      el("div", {class:"bars"}, el("span", {class:x.v > 0.5 ? "" : "z", style:"width:" + (x.v/max*100).toFixed(2) + "%"}), el("span", {class:"f" + (x.f > 0.5 ? "" : " z"), style:"width:" + (x.f/max*100).toFixed(2) + "%"})),
+      el("div", {class:"val num", text:brl(x.v)}), el("div", {class:"d num", text:brl(x.f)}));
+    var linhas = [{c:cssv("--y26"), k:"Vendeu em " + nomeM, v:brlFull(x.v)}, {c:cssv("--fat"), k:"Faturou em " + nomeM, v:brlFull(x.f)}, {k:S.rep === x.k ? "Clique para tirar o filtro" : "Clique para filtrar", v:""}];
+    r.addEventListener("pointermove", function(ev){ showTip(ev, nome, linhas); }); r.addEventListener("pointerleave", hideTip);
+    r.addEventListener("click", function(){ pickRep(x.k); }); r.addEventListener("keydown", function(ev){ if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); pickRep(x.k); } });
+    box.append(r); });
+  box.append(el("div", {class:"row rm tot"}, el("div", {class:"n"}, el("div", {class:"t", text:"Total de " + ls.length + " representantes"})), el("div"), el("div", {class:"val num", text:brl(tv)}), el("div", {class:"d num", text:brl(tf)})));
+  c.append(box); return c; }
 function telaGeral(R){
   if (!D.o.length) return [el("section", {class:"card"}, el("div", {class:"vazioP"}, el("b", {text:"Nenhum dado carregado ainda."}), el("br"), "Clique em Atualizar dados, no topo, e envie o Relatório de Documentos Analítico do ERP."))];
   var tit1 = FAT() ? "Faturamento por mês (data de entrega)" : "Vendas por mês (data de emissão)";
@@ -495,7 +518,7 @@ function telaGeral(R){
   if (FAT()) g.append(el("p", {class:"note", text:"O relatório traz só pedidos emitidos a partir de 01/01/2025. Por isso o faturamento dos primeiros meses de 2025 aparece menor do que foi (faltam os pedidos emitidos em 2024), e a comparação com 2025 fica inflada nesses meses."}));
   var cats = lista(R.cat).map(function(i){ return {k:i.k, t:D.cats[i.k], c:i.c, p:i.p}; }), totCat = cats.reduce(function(s, i){ return s + i.c; }, 0);
   var mix = card(PAL() + " por categoria", "Barra larga: " + A1 + ". Barra fina: " + A0 + ", mesmo período.", legenda()); mix.append(barras(cats, {col:"Categoria", total:totCat, pick:pickCat, sel:S.cat}), el("p", {class:"hint", text:"Clique em uma categoria para filtrar o painel inteiro."}));
-  return [kpis(R), el("div", {class:"grid g2"}, g, FAT() ? fatCard(R) : metaCard(R)), vfCard(R), el("div", {class:"grid g2"}, mix, leituras(R)), FAT() ? null : situacaoCard(R)].filter(Boolean); }
+  return [kpis(R), el("div", {class:"grid g2"}, g, FAT() ? fatCard(R) : metaCard(R)), repMesCard(R), vfCard(R), el("div", {class:"grid g2"}, mix, leituras(R)), FAT() ? null : situacaoCard(R)].filter(Boolean); }
 function telaReps(R){
   var arr = lista(R.rep), ativos = arr.filter(function(i){ return i.c > 0; }), parados = arr.filter(function(i){ return !i.c && i.p > 0; });
   var tot = ativos.reduce(function(s, i){ return s + i.c; }, 0);
