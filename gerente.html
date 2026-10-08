@@ -172,6 +172,23 @@ button.mini{padding:0;overflow:hidden;cursor:zoom-in}
 .visor{position:fixed;inset:0;z-index:40;background:rgba(12,14,13,.9);display:grid;place-items:center;padding:20px;cursor:zoom-out}
 .visor img{max-width:100%;max-height:86vh;border-radius:8px}
 .visor b{color:#F2F3F0;font:600 15px var(--f-body);margin-top:10px;display:block;text-align:center}
+.trilha{position:relative;height:14px;border-radius:7px;background:var(--surface-2);margin:22px 0 6px}
+.trilha .feito{position:absolute;inset:0 auto 0 0;border-radius:7px;background:var(--accent);min-width:4px;transition:width .5s ease}
+.trilha .feito.ok{background:var(--ok)} .trilha .feito.sup{background:linear-gradient(90deg,var(--ok),var(--accent))}
+.trilha i{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--ink-2);border-radius:1px}
+.trilha i.s{background:var(--accent)}
+.marcas{position:relative;height:16px;font-size:11px;color:var(--ink-3)}
+.marcas span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.podio{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.podio div.p{background:var(--surface);padding:14px}
+.podio .lugar{font:700 11px var(--f-disp);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.podio b{display:block;font:700 18px/1.2 var(--f-disp);margin-top:4px} .podio strong{display:block;font:600 26px/1.1 var(--f-mono);margin-top:6px}
+.podio small{font-size:12px;color:var(--ink-3)}
+.jg{display:grid;grid-template-columns:34px minmax(0,260px) minmax(120px,1fr) 170px;gap:4px 12px;align-items:center;padding:12px 14px;background:var(--surface);border-bottom:1px solid var(--line-2)}
+.jg .pos{font:700 18px var(--f-disp);color:var(--ink-3)}
+.jg .trilha{margin:8px 0 4px;height:10px} .jg .trilha i{top:-4px;bottom:-4px}
+.jg .nums{text-align:right;font:600 13px/1.35 var(--f-mono);white-space:nowrap} .jg .nums small{display:block;font:400 11.5px var(--f-body);color:var(--ink-3)}
+@media (max-width:640px){.jg{grid-template-columns:30px 1fr auto} .jg .meio{grid-column:1/-1}}
 .rodapeAud{padding:14px;font-size:12px;color:var(--ink-3);line-height:1.5}
 @media (hover:hover) and (pointer:fine){
   .uso:hover{background:var(--muted)}
@@ -272,6 +289,50 @@ function imgNova(p) {
   if (fotoCache[p]) im.src = fotoCache[p]; else if (obsFoto) obsFoto.observe(im); else carregarFoto(im);
   return im;
 }
+const PREMIO = 0.005, SUPER = 1.33;
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const pc = (v) => v == null ? "—" : Math.round(v * 100) + "%";
+function nivel(p) { return p == null ? ["Sem meta", "fora"] : p >= SUPER ? ["Supermeta", "linha"] : p >= 1 ? ["Meta batida", "linha"] : p >= 0.75 ? ["Reta final", "neutra"] : p >= 0.5 ? ["Acelerando", "neutra"] : p >= 0.25 ? ["No jogo", "lum"] : p > 0 ? ["Aquecendo", "lum"] : ["Na largada", "crit"]; }
+function premio(x) { const p = x.pct || 0; return p >= SUPER ? x.vendido * PREMIO * 2 : p >= 1 ? x.vendido * PREMIO : 0; }
+function trilha(p) {
+  const esc = 1.45, w = (v) => Math.min(100, Math.max(0, v / esc * 100)).toFixed(1) + "%";
+  return el("div", { class: "trilha", role: "img", "aria-label": "Realizado " + pc(p) + " da meta" },
+    el("span", { class: "feito" + (p >= SUPER ? " sup" : p >= 1 ? " ok" : ""), style: "width:" + w(p || 0) }),
+    el("i", { style: "left:" + w(1) }), el("i", { class: "s", style: "left:" + w(SUPER) }));
+}
+function diasUteis(corte) { const d = new Date(corte + "T12:00:00"), fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); let n = 0; for (let x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); x <= fim; x.setDate(x.getDate() + 1)) if (x.getDay() % 6) n++; return n; }
+let jogo = null;
+async function carregarJogo() {
+  try { const r = await chamar("api_jogo", { p_token: token }); if (r && !r.erro) jogo = r; } catch (e) { toast("Não consegui carregar as metas."); }
+  if (montado && aba === "jogo") render();
+}
+function renderJogo() {
+  const corpo = $("#corpo"), d = jogo;
+  if (!d) { corpo.replaceChildren(el("div", { class: "vazio" }, "Carregando o placar…")); return; }
+  if (d.vazio) { corpo.replaceChildren(el("div", { class: "vazio" }, "Ainda não há vendas carregadas. Envie o relatório de pedidos pelo Painel Executivo.")); return; }
+  const mes = MESES[d.mes - 1], ate = d.corte.slice(8, 10) + "/" + d.corte.slice(5, 7), L = d.lista || [], com = L.filter((x) => x.meta > 0), sem = L.filter((x) => !(x.meta > 0) && x.vendido > 0);
+  const tm = com.reduce((a, x) => a + x.meta, 0), tv = com.reduce((a, x) => a + x.vendido, 0), bat = com.filter((x) => x.pct >= 1).length, sup = com.filter((x) => x.pct >= SUPER).length, prem = com.reduce((a, x) => a + premio(x), 0), du = diasUteis(d.corte);
+  const placar = el("div", { class: "placar" },
+    el("div", null, el("div", { class: "rot" }, "Meta de " + mes.toLowerCase()), el("div", { class: "val" }, brl(tm)), el("div", { class: "un" }, fmt(com.length) + " representantes com meta")),
+    el("div", null, el("div", { class: "rot" }, "Vendido até " + ate), el("div", { class: "val ped" }, brl(tv)), el("div", { class: "un" }, pc(tm ? tv / tm : null) + " da meta · " + du + " dias úteis restantes")),
+    el("div", null, el("div", { class: "rot" }, "Bateram a meta"), el("div", { class: "val" }, fmt(bat)), el("div", { class: "un" }, fmt(sup) + " na supermeta (33% acima)")),
+    el("div", null, el("div", { class: "rot" }, "Prêmio estimado"), el("div", { class: "val pend" }, brl(prem)), el("div", { class: "un" }, "0,5% na meta + 0,5% na supermeta")));
+  const podio = el("div", { class: "podio" }, ...com.slice(0, 3).map((x) => el("div", { class: "p" }, el("div", { class: "lugar" }, x.pos + "º lugar"), el("b", null, x.nome), el("strong", null, pc(x.pct)),
+    el("small", null, fmt(x.pontos) + " pontos · " + brl(x.vendido) + " de " + brl(x.meta)))));
+  const linhas = com.map((x) => { const nv = nivel(x.pct), s = x.meta * SUPER;
+    return el("div", { class: "jg" }, el("div", { class: "pos" }, x.pos + "º"),
+      el("div", null, el("div", { class: "resNome" }, x.nome), el("div", { class: "resSub" }, el("span", { class: "etq " + nv[1] }, nv[0]), el("span", null, fmt(x.pontos) + " pontos"),
+        x.novos ? el("span", null, fmt(x.novos) + (x.novos === 1 ? " cliente novo" : " clientes novos")) : null, x.reativados ? el("span", null, fmt(x.reativados) + (x.reativados === 1 ? " reativado" : " reativados")) : null,
+        x.sequencia >= 2 ? el("span", { class: "etq neutra" }, x.sequencia + " meses seguidos") : null)),
+      el("div", { class: "meio" }, trilha(x.pct), el("div", { style: "font-size:11.5px;color:var(--ink-3)" }, x.pct >= SUPER ? "passou a supermeta de " + brl(s) : x.pct >= 1 ? "faltam " + brl(s - x.vendido) + " para a supermeta" : "faltam " + brl(x.falta) + " para a meta" + (du > 0 ? " · " + brl(x.falta / du) + " por dia útil" : ""))),
+      el("div", { class: "nums" }, pc(x.pct), el("small", null, brl(x.vendido) + " de " + brl(x.meta)), premio(x) ? el("small", { style: "color:var(--ok)" }, "prêmio ≈ " + brl(premio(x))) : null)); });
+  corpo.replaceChildren(placar, com.length ? podio : null,
+    el("div", { class: "secao" }, "Placar de " + mes.toLowerCase(), el("span", null, "ordenado por pontos · a linha escura é a meta e a colorida, a supermeta")),
+    ...(linhas.length ? linhas : [el("div", { class: "vazio" }, "Nenhum representante com meta neste mês.")]),
+    sem.length ? el("div", { class: "secao" }, "Venderam sem ter meta no mês", el("span", null, sem.map((x) => x.nome + " " + brl(x.vendido)).join(" · "))) : null,
+    el("div", { class: "rodapeAud" }, "Pontos: 1 por cada 1% da meta, 5 por cliente novo e 3 por cliente reativado (voltou a comprar depois de mais de 180 dias). Prêmio: +0,5% de comissão ao bater a meta e mais +0,5% ao bater a supermeta (33% acima), estimado aqui sobre as vendas do mês. "
+      + "Cada representante vê só a própria meta, a própria posição e quanto o líder já fez; não vê nomes nem valores dos colegas. Metas do relatório do ERP; a análise mês a mês está na aba Metas do Painel Executivo."));
+}
 let pe = { d: null, fotos: {}, novas: {}, busca: "", filtro: "todos", alvo: null };
 async function carregarPE() {
   try {
@@ -365,6 +426,7 @@ async function carregar() {
     if (aba === "aud" || !aud) await carregarAud(true);
     if (!cli.d) await carregarCli();
     if (!pe.d) carregarPE();
+    if (!jogo || aba === "jogo") carregarJogo();
   } catch (e) { toast("Sem conexão com o servidor."); if (!montado) return telaEntrar("Não consegui falar com o servidor. Tente de novo."); }
   if (!montado) montarTela(); else render();
 }
@@ -459,13 +521,13 @@ function render() {
   $("#diaTxt").replaceChildren(document.createTextNode(oDia === hoje ? "Hoje, " + dataBR(oDia) : dataBR(oDia)),
     el("br"), document.createTextNode("reserva sem pedido cai às 23h59"),
     ...(aud && aud.publicacao ? [el("br"), document.createTextNode("Pronta entrega atualizada em " + quandoBR(aud.publicacao.em) + (aud.publicacao.por ? " por " + aud.publicacao.por : ""))] : []));
-  const naAud = aba === "aud" || aba === "cli" || aba === "pe";
-  $("#tituloTela").textContent = aba === "aud" ? "Auditoria do sistema" : aba === "cli" ? "Clientes" : aba === "pe" ? "Pronta entrega" : aba === "reps" ? "Representantes" : "Reservas do dia";
+  const naAud = aba === "aud" || aba === "cli" || aba === "pe" || aba === "jogo";
+  $("#tituloTela").textContent = aba === "aud" ? "Auditoria do sistema" : aba === "cli" ? "Clientes" : aba === "pe" ? "Pronta entrega" : aba === "jogo" ? "Placar de metas" : aba === "reps" ? "Representantes" : "Reservas do dia";
   $("#placar").hidden = naAud; $("#ferramentas").hidden = naAud; $("#chips").hidden = naAud;
-  $("#abas").replaceChildren(...[["reservas", "Reservas", linhas.length], ["pe", "Pronta entrega", pe.d && pe.d.itens ? pe.d.itens.length : 0], ["reps", "Representantes", (reps || []).filter((r) => r.papel === "representante").length]]
+  $("#abas").replaceChildren(...[["reservas", "Reservas", linhas.length], ["pe", "Pronta entrega", pe.d && pe.d.itens ? pe.d.itens.length : 0], ["jogo", "Metas", jogo && jogo.lista ? jogo.lista.filter((x) => x.meta > 0).length : 0], ["reps", "Representantes", (reps || []).filter((r) => r.papel === "representante").length]]
     .concat([["cli", "Clientes", cli.d ? cli.d.base : 0], ["aud", "Auditoria", aud ? aud.total : 0]])
     .map(([v, t, n]) => el("button", { role: "tab", type: "button", "aria-selected": String(aba === v),
-      onclick: () => { aba = v; render(); if (v === "aud") carregarAud(); if (v === "cli") carregarCli(); if (v === "pe") carregarPE(); } }, t, el("b", null, fmt(n)))),
+      onclick: () => { aba = v; render(); if (v === "aud") carregarAud(); if (v === "cli") carregarCli(); if (v === "pe") carregarPE(); if (v === "jogo") carregarJogo(); } }, t, el("b", null, fmt(n)))),
     el("a", { class: "painel", href: "painel.html" }, "Painel Executivo"),
     el("a", { class: "painel", href: "catalogo.html?de=gerente" }, "Catálogo"),
     el("a", { class: "ext", href: "https://claude.ai/artifact/R41KP89q4RFJ6yUgo16eRP", target: "_blank", rel: "noopener" }, "Gestão Comercial ↗"));
@@ -474,7 +536,7 @@ function render() {
     el("div", null, el("div", { class: "rot" }, "Virou pedido"), el("div", { class: "val ped" }, fmt(ped)), el("div", { class: "un" }, "peças")),
     el("div", null, el("div", { class: "rot" }, "Aguardando"), el("div", { class: "val pend" }, fmt(pc - ped)), el("div", { class: "un" }, "peças · caem hoje")),
     el("div", null, el("div", { class: "rot" }, "Representantes"), el("div", { class: "val" }, fmt(pessoas)), el("div", { class: "un" }, "reservaram")));
-  if (aba === "reservas") renderReservas(linhas); else if (aba === "reps") renderReps(); else if (aba === "cli") renderCli(); else if (aba === "pe") renderPE(); else renderAud();
+  if (aba === "reservas") renderReservas(linhas); else if (aba === "reps") renderReps(); else if (aba === "cli") renderCli(); else if (aba === "pe") renderPE(); else if (aba === "jogo") renderJogo(); else renderAud();
 }
 function renderCli() {
   const corpo = $("#corpo"), d = cli.d;
@@ -565,7 +627,7 @@ function haQuanto(t, agora) {
 function descreve(e) {
   const d = e.detalhe || {}, pc = (n) => fmt(n) + " pç";
   const item = () => [d.qtd != null ? pc(d.qtd) : null, d.produto ? titulo(d.produto) : null, d.cor ? titulo(d.cor) : null].filter(Boolean).join(" · ");
-  if (e.acao === "acesso") return "abriu a tela " + (d.tela === "gerente" ? "do gerente" : d.tela === "clientes" ? "de clientes" : d.tela === "painel executivo" ? "do painel executivo" : "da pronta entrega");
+  if (e.acao === "acesso") return "abriu a tela " + (d.tela === "gerente" ? "do gerente" : d.tela === "clientes" ? "de clientes" : d.tela === "painel executivo" ? "do painel executivo" : d.tela === "metas" ? "de metas" : "da pronta entrega");
   if (e.acao === "importou clientes") return fmt(d.clientes) + " clientes" + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
   if (e.acao === "importou vendas") return fmt(d.linhas) + " pedidos, emitidos de " + dataBR(d.de) + " a " + dataBR(d.ate) + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
   if (e.acao === "viu vendas do cliente") return (d.cliente || "") + " · cód. " + d.cod;

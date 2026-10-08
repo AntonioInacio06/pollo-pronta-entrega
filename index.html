@@ -50,7 +50,9 @@ h1{font:700 20px/1.05 var(--f-disp);margin:3px 0 0}
 .atualizado.velho{background:var(--warn-bg);color:var(--warn)}
 .atualizado .ponto{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
 .atualizado em{font-style:normal;font-weight:400;color:var(--ink-2)}
-.buscaLinha{display:flex;gap:8px;padding:9px 14px 0}
+.buscaLinha{display:flex;flex-wrap:wrap;gap:8px;padding:9px 14px 0}
+.buscaLinha input{flex:1 1 180px}
+.catalogo{min-height:42px}
 .buscaLinha input{flex:1;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--muted)}
 .limpar{padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);font-size:13px;color:var(--ink-2)}
 .limpar:active{background:var(--line)}
@@ -215,7 +217,7 @@ function montarTela() {
       el("div", { class: "atualizado", id: "atualizado" }),
       el("div", { class: "buscaLinha" }, bx,
         el("button", { class: "limpar", type: "button", onclick: () => { bx.value = ""; busca = ""; renderLista(); bx.focus(); } }, "Limpar"),
-        el("a", { class: "catalogo", href: "clientes.html" }, "Clientes"),
+        el("a", { class: "catalogo", href: "metas.html" }, "Minha meta"), el("a", { class: "catalogo", href: "clientes.html" }, "Clientes"),
         el("a", { class: "catalogo", href: "catalogo.html" }, "Catálogo")),
       el("div", { class: "chips", id: "chips" })),
     dados.publicacao && dados.publicacao.observacao ? el("div", { class: "aviso" }, dados.publicacao.observacao) : null,

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1A1F1E">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="app/rep-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="app/rep-192.png">
+<title>Minha meta · Pollo Decor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F2F3F0; --surface:#FFFFFF; --surface-2:#E9EBE6; --muted:#EDEFEB;
+  --ink:#1C2220; --ink-2:#525C57; --ink-3:#7F8883; --line:#D8DBD4; --line-2:#E8EAE5;
+  --accent:#8F5329; --accent-ink:#FFFFFF; --accent-soft:#F6EBE1;
+  --ok:#2A7148; --ok-bg:#E2F0E7; --warn:#8A5E0F; --warn-bg:#F7EDD6; --crit:#A3372F; --crit-bg:#F7E2DE;
+  --f-disp:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --topo:158px;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#121615; --surface:#1A1F1E; --surface-2:#232928; --muted:#1E2423;
+  --ink:#E7EAE6; --ink-2:#A8B0AB; --ink-3:#838C88; --line:#333A37; --line-2:#272E2C;
+  --accent:#D38D5C; --accent-ink:#1B120D; --accent-soft:#33241B;
+  --ok:#74C495; --ok-bg:#1C3326; --warn:#E2B55E; --warn-bg:#3A2F16; --crit:#EA8F85; --crit-bg:#3E2320;
+}}
+*{box-sizing:border-box}
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body)}
+button{font:inherit;color:inherit;touch-action:manipulation}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.topo{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.cabeca{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;max-width:760px;margin:0 auto}
+.marca{font:700 10px/1 var(--f-disp);letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 20px/1.05 var(--f-disp);margin:3px 0 0}
+.voltar{display:flex;align-items:center;padding:0 13px;border:1px solid var(--accent);border-radius:10px;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap;min-height:42px}
+main{max-width:760px;margin:0 auto;padding:14px 14px calc(env(safe-area-inset-bottom,0px) + 40px);display:grid;gap:14px}
+.cartao{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.rot{font:700 11px/1.2 var(--f-disp);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.grande{font:700 56px/1 var(--f-disp);letter-spacing:-.02em;margin-top:6px}
+.linhaTopo{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.etq{display:inline-block;font:700 11px/1 var(--f-disp);letter-spacing:.07em;text-transform:uppercase;padding:6px 9px;border-radius:6px}
+.etq.linha{background:var(--ok-bg);color:var(--ok)} .etq.lum{background:var(--warn-bg);color:var(--warn)} .etq.crit{background:var(--crit-bg);color:var(--crit)}
+.etq.neutra{background:var(--accent-soft);color:var(--accent)} .etq.fora{background:var(--surface-2);color:var(--ink-3)}
+.trilha{position:relative;height:14px;border-radius:7px;background:var(--surface-2);margin:22px 0 6px}
+.trilha .feito{position:absolute;inset:0 auto 0 0;border-radius:7px;background:var(--accent);min-width:4px;transition:width .5s ease}
+.trilha .feito.ok{background:var(--ok)} .trilha .feito.sup{background:linear-gradient(90deg,var(--ok),var(--accent))}
+.trilha i{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--ink-2);border-radius:1px}
+.trilha i.s{background:var(--accent)}
+.marcas{position:relative;height:16px;font-size:11px;color:var(--ink-3)}
+.marcas span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.fatos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 16px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line-2)}
+.fatos b{display:block;font:600 18px/1.2 var(--f-mono)} .fatos span{font-size:12px;color:var(--ink-3)}
+.frase{margin:14px 0 0;font-size:15px}
+.frase b{font-weight:600}
+.premios{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+.premio{border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:6px}
+.premio.ganho{border-color:var(--ok);background:var(--ok-bg)}
+.premio .etq{justify-self:start}
+.premio strong{font:700 22px/1.1 var(--f-disp)} .premio small{font-size:12.5px;color:var(--ink-2)}
+.placar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:12px}
+.placar div b{display:block;font:700 30px/1 var(--f-disp)} .placar div span{font-size:12px;color:var(--ink-3)}
+.conq{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px}
+.selo{border:1px dashed var(--line);border-radius:12px;padding:12px;opacity:.55}
+.selo.tem{border-style:solid;border-color:var(--accent);background:var(--accent-soft);opacity:1}
+.selo b{display:block;font:700 14px/1.2 var(--f-disp)} .selo span{font-size:12px;color:var(--ink-2)}
+.selo .marca2{font:700 10px var(--f-disp);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)} .selo.tem .marca2{color:var(--accent)}
+.mes{display:grid;grid-template-columns:44px 1fr 74px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line-2);font-size:13px}
+.mes:first-child{border-top:0}
+.mes .b{position:relative;height:10px;border-radius:5px;background:var(--surface-2)}
+.mes .b span{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--accent)} .mes .b span.ok{background:var(--ok)}
+.mes .b i{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink-2)}
+.mes .v{text-align:right;font:600 12.5px var(--f-mono)}
+.dicas{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.dicas a{padding:9px 13px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:13px;color:var(--ink-2);text-decoration:none}
+.dicas a b{font-family:var(--f-mono);margin-left:6px;color:var(--ink)}
+.regra{font-size:12.5px;color:var(--ink-3);margin:12px 0 0}
+.vazio{padding:40px 20px;text-align:center;color:var(--ink-3)}
+.entrar{max-width:420px;margin:48px auto;padding:0 18px;display:grid;gap:12px}
+.entrar input{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:16px}
+.entrar button{padding:14px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:600 16px var(--f-disp)}
+@media (max-width:480px){.grande{font-size:46px}}
+@media (prefers-reduced-motion:reduce){.trilha .feito{transition:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPA_URL = "https://qatazfwvckitolhqsqtl.supabase.co";
+const SUPA_KEY = "sb_publishable_Mq2CWYw_E4T13_rIYgH83Q_678o_prh";
+const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+const $ = (s) => document.querySelector(s);
+const el = (t, a, ...k) => { const e = document.createElement(t);
+  if (a) for (const [n, v] of Object.entries(a)) { if (v == null || v === false) continue;
+    if (n === "class") e.className = v; else if (n.startsWith("on")) e.addEventListener(n.slice(2), v); else e.setAttribute(n, v === true ? "" : v); }
+  for (const c of k.flat()) { if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e; };
+const fmt = (n) => (Number(n) || 0).toLocaleString("pt-BR");
+const PREMIO = 0.005, SUPER = 1.33;
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const brl = (v) => (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const pc = (v) => v == null ? "—" : Math.round(v * 100) + "%";
+function nivel(p) { return p == null ? ["Sem meta", "fora"] : p >= SUPER ? ["Supermeta", "linha"] : p >= 1 ? ["Meta batida", "linha"] : p >= 0.75 ? ["Reta final", "neutra"] : p >= 0.5 ? ["Acelerando", "neutra"] : p >= 0.25 ? ["No jogo", "lum"] : p > 0 ? ["Aquecendo", "lum"] : ["Na largada", "crit"]; }
+function premio(x) { const p = x.pct || 0; return p >= SUPER ? x.vendido * PREMIO * 2 : p >= 1 ? x.vendido * PREMIO : 0; }
+function trilha(p) {
+  const esc = 1.45, w = (v) => Math.min(100, Math.max(0, v / esc * 100)).toFixed(1) + "%";
+  return el("div", { class: "trilha", role: "img", "aria-label": "Realizado " + pc(p) + " da meta" },
+    el("span", { class: "feito" + (p >= SUPER ? " sup" : p >= 1 ? " ok" : ""), style: "width:" + w(p || 0) }),
+    el("i", { style: "left:" + w(1) }), el("i", { class: "s", style: "left:" + w(SUPER) }));
+}
+function diasUteis(corte) { const d = new Date(corte + "T12:00:00"), fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); let n = 0; for (let x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); x <= fim; x.setDate(x.getDate() + 1)) if (x.getDay() % 6) n++; return n; }
+
+let token = null;
+try { token = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("pe-token"); } catch (e) {}
+if (token && location.hash.indexOf("t=") >= 0) { try { localStorage.setItem("pe-token", token); } catch (e) {} history.replaceState(null, "", location.pathname); }
+function topo() { return el("div", { class: "topo" }, el("div", { class: "cabeca" }, el("div", null, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Minha meta")), el("a", { class: "voltar", href: "./" }, "← Pronta entrega"))); }
+function telaEntrar(msg) {
+  const cod = el("input", { id: "cod", placeholder: "código de acesso", autocomplete: "off", autocapitalize: "none", autocorrect: "off", spellcheck: "false", enterkeyhint: "go" });
+  const ir = () => { const v = cod.value.trim(); if (!v) return; token = v; try { localStorage.setItem("pe-token", v); } catch (e) {} carregar(); };
+  cod.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); });
+  $("#app").replaceChildren(el("div", { class: "entrar" }, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Minha meta"),
+    el("p", { style: "color:var(--ink-2);font-size:13.5px;margin:0" }, msg || "Use o link que a fábrica mandou para você, ou cole aqui o seu código de acesso."), cod, el("button", { type: "button", onclick: ir }, "Entrar")));
+}
+async function carregar() {
+  $("#app").replaceChildren(topo(), el("div", { class: "vazio" }, "Carregando a sua meta…"));
+  let d = null, cli = null;
+  try { const r = await sb.rpc("api_jogo", { p_token: token }); if (r.error) throw r.error; d = r.data; }
+  catch (e) { $("#app").replaceChildren(topo(), el("div", { class: "vazio" }, "Sem conexão agora. Confira a internet e abra de novo.")); return; }
+  if (!d || d.erro) { try { localStorage.removeItem("pe-token"); } catch (e) {} token = null; return telaEntrar("Este código não vale mais. Peça o novo para a fábrica."); }
+  try { const r = await sb.rpc("api_clientes", { p_token: token, p_limite: 1 }); if (r.data && !r.data.erro) cli = r.data; } catch (e) {}
+  desenhar(d, cli);
+}
+function desenhar(d, cli) {
+  const blocos = [topo()], main = el("main");
+  blocos.push(main);
+  if (d.vazio) { main.append(el("div", { class: "vazio" }, "A fábrica ainda não carregou as vendas. Assim que carregar, a sua meta aparece aqui.")); $("#app").replaceChildren(...blocos); return; }
+  if (d.gerente) { main.append(el("div", { class: "vazio" }, "Este acesso é de gerente. O placar geral fica na aba Metas do módulo gerente.")); $("#app").replaceChildren(...blocos); return; }
+  const eu = d.eu, mes = MESES[d.mes - 1], ate = d.corte.slice(8, 10) + "/" + d.corte.slice(5, 7);
+  if (!eu) { main.append(el("div", { class: "cartao" }, el("div", { class: "rot" }, mes + " de " + d.ano), el("p", { class: "frase" }, d.codigo ? "Não há meta cadastrada para o seu código (" + d.codigo + ") neste ano. Fale com o gerente." : "Seu código de representante ainda não foi cadastrado. Peça ao gerente para liberar a sua meta."))); $("#app").replaceChildren(...blocos); return; }
+  const p = eu.pct, nv = nivel(eu.meta > 0 ? p : null), sup = eu.meta * SUPER, du = diasUteis(d.corte), faltaSup = Math.max(0, sup - eu.vendido);
+  const alvo = p >= 1 ? faltaSup : eu.falta, ritmo = du > 0 ? alvo / du : 0;
+  /* 1. meta do mês */
+  const hero = el("div", { class: "cartao" },
+    el("div", { class: "linhaTopo" }, el("div", null, el("div", { class: "rot" }, "Meta de " + mes.toLowerCase() + " · vendas até " + ate), el("div", { class: "grande" }, eu.meta > 0 ? pc(p) : brl(eu.vendido))), el("span", { class: "etq " + nv[1] }, nv[0])));
+  if (eu.meta > 0) {
+    hero.append(trilha(p), el("div", { class: "marcas" }, el("span", { style: "left:0;transform:none" }, "0"), el("span", { style: "left:" + (1 / 1.45 * 100).toFixed(1) + "%" }, "Meta"), el("span", { style: "left:" + (SUPER / 1.45 * 100).toFixed(1) + "%" }, "Supermeta")),
+      el("p", { class: "frase" }, p >= SUPER ? ["Supermeta batida. ", el("b", null, "Você passou " + brl(eu.vendido - sup) + " da supermeta.")]
+        : p >= 1 ? ["Meta batida! Faltam ", el("b", null, brl(faltaSup)), " para a supermeta."]
+        : ["Faltam ", el("b", null, brl(eu.falta)), " para a meta" + (du > 0 ? ": " : "."), du > 0 ? el("b", null, brl(ritmo) + " por dia útil") : null, du > 0 ? " nos " + du + (du === 1 ? " dia útil que resta." : " dias úteis que restam.") : null]),
+      el("div", { class: "fatos" }, el("div", null, el("b", null, brl(eu.vendido)), el("span", null, "vendido no mês")), el("div", null, el("b", null, brl(eu.meta)), el("span", null, "meta do mês")),
+        el("div", null, el("b", null, brl(sup)), el("span", null, "supermeta (33% acima)")), el("div", null, el("b", null, String(du)), el("span", null, du === 1 ? "dia útil até o fim do mês" : "dias úteis até o fim do mês"))));
+  } else hero.append(el("p", { class: "frase" }, "Você não tem meta cadastrada em " + mes.toLowerCase() + ". O valor acima é o que vendeu no mês."));
+  main.append(hero);
+  /* 2. prêmio */
+  if (eu.meta > 0) {
+    const g1 = p >= 1, g2 = p >= SUPER;
+    main.append(el("div", { class: "cartao" }, el("div", { class: "rot" }, "Prêmio do mês"),
+      el("div", { class: "premios" },
+        el("div", { class: "premio" + (g1 ? " ganho" : "") }, el("span", { class: "etq " + (g1 ? "linha" : "fora") }, g1 ? "Conquistado" : "Meta"), el("strong", null, "+0,5% de comissão"),
+          el("small", null, g1 ? "Você bateu a meta de " + brl(eu.meta) + "." : "Ao vender " + brl(eu.meta) + " no mês. Faltam " + brl(eu.falta) + "."), el("small", null, "Vale cerca de " + brl((g1 ? eu.vendido : eu.meta) * PREMIO) + (g1 ? " sobre o que você já vendeu." : " ao bater a meta."))),
+        el("div", { class: "premio" + (g2 ? " ganho" : "") }, el("span", { class: "etq " + (g2 ? "linha" : "fora") }, g2 ? "Conquistado" : "Supermeta"), el("strong", null, "mais +0,5% de comissão"),
+          el("small", null, g2 ? "Você bateu a supermeta de " + brl(sup) + "." : "Ao vender " + brl(sup) + " no mês (33% acima da meta). Faltam " + brl(faltaSup) + "."), el("small", null, "Somando os dois prêmios: cerca de " + brl((g2 ? eu.vendido : sup) * PREMIO * 2) + (g2 ? " sobre o que você já vendeu." : " ao bater a supermeta.")))),
+      el("p", { class: "regra" }, "Valores estimados sobre as vendas do mês. O acerto final é o da fábrica, depois dos cancelamentos.")));
+  }
+  /* 3. placar */
+  if (eu.pos) {
+    const dif = d.frente ? d.frente.pontos - eu.pontos : 0;
+    main.append(el("div", { class: "cartao" }, el("div", { class: "rot" }, "Seu lugar no placar de " + mes.toLowerCase()),
+      el("div", { class: "placar" }, el("div", null, el("b", null, eu.pos + "º"), el("span", null, "de " + d.participantes + " representantes com meta")), el("div", null, el("b", null, fmt(eu.pontos)), el("span", null, "pontos no mês")),
+        el("div", null, el("b", null, pc(d.lider_pct)), el("span", null, eu.pos === 1 ? "é a sua marca: você lidera" : "é quanto o líder já fez da meta dele"))),
+      el("p", { class: "frase" }, eu.pos === 1 ? "Você está em primeiro. Segure a ponta." : dif > 0 ? ["Faltam ", el("b", null, fmt(dif + 1) + (dif + 1 === 1 ? " ponto" : " pontos")), " para subir uma posição."] : "Você está empatado com quem vem à frente: qualquer venda vira a posição."),
+      el("p", { class: "regra" }, "Pontos: 1 por cada 1% da meta, 5 por cliente novo e 3 por cliente reativado (voltou a comprar depois de mais de 180 dias).")));
+  }
+  /* 4. conquistas */
+  const cq = [[eu.vendido > 0, "Primeira venda", "abriu o mês"], [p >= 0.25, "25% da meta", "saiu da largada"], [p >= 0.5, "Metade do caminho", "50% da meta"], [p >= 0.75, "Reta final", "75% da meta"],
+    [p >= 1, "Meta batida", "+0,5% de comissão"], [p >= SUPER, "Supermeta", "mais +0,5% de comissão"], [eu.novos > 0, "Cliente novo", eu.novos ? fmt(eu.novos) + " no mês · +5 pontos cada" : "abra um cliente novo"],
+    [eu.reativados > 0, "Cliente reativado", eu.reativados ? fmt(eu.reativados) + " no mês · +3 pontos cada" : "traga de volta um inativo"], [eu.sequencia >= 2, "Sequência", eu.sequencia >= 2 ? eu.sequencia + " meses seguidos batendo meta" : "bata a meta dois meses seguidos"]];
+  main.append(el("div", { class: "cartao" }, el("div", { class: "rot" }, "Conquistas de " + mes.toLowerCase() + " · " + cq.filter((c) => c[0]).length + " de " + cq.length),
+    el("div", { class: "conq" }, ...cq.map((c) => el("div", { class: "selo" + (c[0] ? " tem" : "") }, el("div", { class: "marca2" }, c[0] ? "Conquistada" : "A conquistar"), el("b", null, c[1]), el("span", null, c[2]))))));
+  /* 5. onde buscar */
+  if (cli && cli.situacoes) { const s = cli.situacoes, itens = [["repescagem", "Em repescagem"], ["inativo", "Inativos"], ["ativo", "Ativos"], ["sem", "Nunca compraram"]].filter((x) => s[x[0]]);
+    if (itens.length) main.append(el("div", { class: "cartao" }, el("div", { class: "rot" }, "Onde buscar o que falta"),
+      el("p", { class: "frase" }, "Clientes da sua carteira que podem voltar a comprar:"), el("div", { class: "dicas" }, ...itens.map((x) => el("a", { href: "clientes.html" }, x[1], el("b", null, fmt(s[x[0]])))))));
+  }
+  /* 6. histórico */
+  const hist = (eu.hist || []).filter((h) => h.meta > 0 || h.vendido > 0);
+  if (hist.length) main.append(el("div", { class: "cartao" }, el("div", { class: "rot" }, "Seu ano · " + fmt(eu.batidas) + (eu.batidas === 1 ? " meta batida" : " metas batidas") + " em " + d.ano),
+    el("div", { style: "margin-top:10px" }, ...hist.map((h) => { const q = h.meta > 0 ? h.vendido / h.meta : null, esc = Math.max(1.45, q || 0);
+      return el("div", { class: "mes" }, el("div", null, MESES[h.mes - 1].slice(0, 3).toLowerCase()),
+        el("div", { class: "b" }, el("span", { class: q != null && q >= 1 ? "ok" : "", style: "width:" + (q != null ? Math.min(100, q / esc * 100) : 0).toFixed(1) + "%" }), q != null ? el("i", { style: "left:" + (1 / esc * 100).toFixed(1) + "%" }) : null),
+        el("div", { class: "v" }, q != null ? pc(q) + (q >= 1 ? " ✓" : "") : "sem meta")); })),
+    el("p", { class: "regra" }, "A linha marca a meta de cada mês. " + mes + " ainda está em andamento.")));
+  $("#app").replaceChildren(...blocos);
+}
+if (token) carregar(); else telaEntrar();
+</script>
+</body>
+</html>
