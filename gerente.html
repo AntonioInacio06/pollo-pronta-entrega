@@ -301,20 +301,25 @@ function trilha(p) {
     el("i", { style: "left:" + w(1) }), el("i", { class: "s", style: "left:" + w(SUPER) }));
 }
 function diasUteis(corte) { const d = new Date(corte + "T12:00:00"), fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); let n = 0; for (let x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); x <= fim; x.setDate(x.getDate() + 1)) if (x.getDay() % 6) n++; return n; }
-let jogo = null;
+let jogo = null, jogoMes = null;
 async function carregarJogo() {
-  try { const r = await chamar("api_jogo", { p_token: token }); if (r && !r.erro) jogo = r; } catch (e) { toast("Não consegui carregar as metas."); }
+  try { const r = await chamar("api_jogo", { p_token: token, p_mes: jogoMes }); if (r && !r.erro) jogo = r; } catch (e) { toast("Não consegui carregar as metas."); }
   if (montado && aba === "jogo") render();
 }
 function renderJogo() {
   const corpo = $("#corpo"), d = jogo;
   if (!d) { corpo.replaceChildren(el("div", { class: "vazio" }, "Carregando o placar…")); return; }
   if (d.vazio) { corpo.replaceChildren(el("div", { class: "vazio" }, "Ainda não há vendas carregadas. Envie o relatório de pedidos pelo Painel Executivo.")); return; }
-  const mes = MESES[d.mes - 1], ate = d.corte.slice(8, 10) + "/" + d.corte.slice(5, 7), L = d.lista || [], com = L.filter((x) => x.meta > 0), sem = L.filter((x) => !(x.meta > 0) && x.vendido > 0);
-  const tm = com.reduce((a, x) => a + x.meta, 0), tv = com.reduce((a, x) => a + x.vendido, 0), bat = com.filter((x) => x.pct >= 1).length, sup = com.filter((x) => x.pct >= SUPER).length, prem = com.reduce((a, x) => a + premio(x), 0), du = diasUteis(d.corte);
+  const mes = MESES[d.mes - 1], ate = d.corte.slice(8, 10) + "/" + d.corte.slice(5, 7), L = d.lista || [], com = L.filter((x) => x.meta > 0), aberto = d.mes === d.mes_atual;
+  const sem = L.filter((x) => !(x.meta > 0) && x.vendido > 0).concat(d.outros || []);
+  const tm = com.reduce((a, x) => a + x.meta, 0), tvCom = com.reduce((a, x) => a + x.vendido, 0), tv = d.vendido_total != null ? Number(d.vendido_total) : tvCom, bat = com.filter((x) => x.pct >= 1).length, sup = com.filter((x) => x.pct >= SUPER).length, prem = com.reduce((a, x) => a + premio(x), 0), du = aberto ? diasUteis(d.corte) : 0;
+  const selMes = el("select", { id: "jogoMes", "aria-label": "Mês do placar" }, ...MESES.slice(0, d.mes_atual).map((m, i) => el("option", { value: i + 1, selected: i + 1 === d.mes ? true : null }, m + (i + 1 === d.mes_atual ? " (em andamento, até " + ate + ")" : " (fechado)"))));
+  selMes.addEventListener("change", () => { jogoMes = Number(selMes.value); carregarJogo(); });
+  const barraMes = el("div", { class: "ferramentas" }, el("label", { for: "jogoMes" }, "Mês do placar"), selMes,
+    el("span", { style: "font-size:12.5px;color:var(--ink-2)" }, "No Painel Executivo, escolha o mesmo mês no topo para comparar os números."));
   const placar = el("div", { class: "placar" },
     el("div", null, el("div", { class: "rot" }, "Meta de " + mes.toLowerCase()), el("div", { class: "val" }, brl(tm)), el("div", { class: "un" }, fmt(com.length) + " representantes com meta")),
-    el("div", null, el("div", { class: "rot" }, "Vendido até " + ate), el("div", { class: "val ped" }, brl(tv)), el("div", { class: "un" }, pc(tm ? tv / tm : null) + " da meta · " + du + " dias úteis restantes")),
+    el("div", null, el("div", { class: "rot" }, aberto ? "Vendido até " + ate : "Vendido em " + mes.toLowerCase()), el("div", { class: "val ped" }, brl(tv)), el("div", { class: "un" }, pc(tm ? tv / tm : null) + " da meta · " + (aberto ? du + " dias úteis restantes" : "mês fechado") + (tv - tvCom > 0.5 ? " · inclui " + brl(tv - tvCom) + " de quem não tem meta no mês" : ""))),
     el("div", null, el("div", { class: "rot" }, "Bateram a meta"), el("div", { class: "val" }, fmt(bat)), el("div", { class: "un" }, fmt(sup) + " na supermeta (33% acima)")),
     el("div", null, el("div", { class: "rot" }, "Prêmio estimado"), el("div", { class: "val pend" }, brl(prem)), el("div", { class: "un" }, "0,5% na meta + 0,5% na supermeta")));
   const podio = el("div", { class: "podio" }, ...com.slice(0, 3).map((x) => el("div", { class: "p" }, el("div", { class: "lugar" }, x.pos + "º lugar"), el("b", null, x.nome), el("strong", null, pc(x.pct)),
@@ -324,10 +329,10 @@ function renderJogo() {
       el("div", null, el("div", { class: "resNome" }, x.nome), el("div", { class: "resSub" }, el("span", { class: "etq " + nv[1] }, nv[0]), el("span", null, fmt(x.pontos) + " pontos"),
         x.novos ? el("span", null, fmt(x.novos) + (x.novos === 1 ? " cliente novo" : " clientes novos")) : null, x.reativados ? el("span", null, fmt(x.reativados) + (x.reativados === 1 ? " reativado" : " reativados")) : null,
         x.sequencia >= 2 ? el("span", { class: "etq neutra" }, x.sequencia + " meses seguidos") : null)),
-      el("div", { class: "meio" }, trilha(x.pct), el("div", { style: "font-size:11.5px;color:var(--ink-3)" }, x.pct >= SUPER ? "passou a supermeta de " + brl(s) : x.pct >= 1 ? "faltam " + brl(s - x.vendido) + " para a supermeta" : "faltam " + brl(x.falta) + " para a meta" + (du > 0 ? " · " + brl(x.falta / du) + " por dia útil" : ""))),
+      el("div", { class: "meio" }, trilha(x.pct), el("div", { style: "font-size:11.5px;color:var(--ink-3)" }, x.pct >= SUPER ? "passou a supermeta de " + brl(s) : x.pct >= 1 ? (aberto ? "faltam " : "ficaram faltando ") + brl(s - x.vendido) + " para a supermeta" : (aberto ? "faltam " : "ficaram faltando ") + brl(x.falta) + " para a meta" + (du > 0 ? " · " + brl(x.falta / du) + " por dia útil" : ""))),
       el("div", { class: "nums" }, pc(x.pct), el("small", null, brl(x.vendido) + " de " + brl(x.meta)), premio(x) ? el("small", { style: "color:var(--ok)" }, "prêmio ≈ " + brl(premio(x))) : null)); });
-  corpo.replaceChildren(placar, com.length ? podio : null,
-    el("div", { class: "secao" }, "Placar de " + mes.toLowerCase(), el("span", null, "ordenado por pontos · a linha escura é a meta e a colorida, a supermeta")),
+  corpo.replaceChildren(barraMes, placar, com.length ? podio : null,
+    el("div", { class: "secao" }, "Placar de " + mes.toLowerCase() + (aberto ? " (até " + ate + ")" : " (mês fechado)"), el("span", null, "ordenado por pontos · a linha escura é a meta e a colorida, a supermeta")),
     ...(linhas.length ? linhas : [el("div", { class: "vazio" }, "Nenhum representante com meta neste mês.")]),
     sem.length ? el("div", { class: "secao" }, "Venderam sem ter meta no mês", el("span", null, sem.map((x) => x.nome + " " + brl(x.vendido)).join(" · "))) : null,
     el("div", { class: "rodapeAud" }, "Pontos: 1 por cada 1% da meta, 5 por cliente novo e 3 por cliente reativado (voltou a comprar depois de mais de 180 dias). Prêmio: +0,5% de comissão ao bater a meta e mais +0,5% ao bater a supermeta (33% acima), estimado aqui sobre as vendas do mês. "

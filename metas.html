@@ -118,7 +118,7 @@ function trilha(p) {
 }
 function diasUteis(corte) { const d = new Date(corte + "T12:00:00"), fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); let n = 0; for (let x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); x <= fim; x.setDate(x.getDate() + 1)) if (x.getDay() % 6) n++; return n; }
 
-let token = null;
+let token = null, mesEscolhido = null;
 try { token = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("pe-token"); } catch (e) {}
 if (token && location.hash.indexOf("t=") >= 0) { try { localStorage.setItem("pe-token", token); } catch (e) {} history.replaceState(null, "", location.pathname); }
 function topo() { return el("div", { class: "topo" }, el("div", { class: "cabeca" }, el("div", null, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Minha meta")), el("a", { class: "voltar", href: "./" }, "← Pronta entrega"))); }
@@ -132,7 +132,7 @@ function telaEntrar(msg) {
 async function carregar() {
   $("#app").replaceChildren(topo(), el("div", { class: "vazio" }, "Carregando a sua meta…"));
   let d = null, cli = null;
-  try { const r = await sb.rpc("api_jogo", { p_token: token }); if (r.error) throw r.error; d = r.data; }
+  try { const r = await sb.rpc("api_jogo", { p_token: token, p_mes: mesEscolhido }); if (r.error) throw r.error; d = r.data; }
   catch (e) { $("#app").replaceChildren(topo(), el("div", { class: "vazio" }, "Sem conexão agora. Confira a internet e abra de novo.")); return; }
   if (!d || d.erro) { try { localStorage.removeItem("pe-token"); } catch (e) {} token = null; return telaEntrar("Este código não vale mais. Peça o novo para a fábrica."); }
   try { const r = await sb.rpc("api_clientes", { p_token: token, p_limite: 1 }); if (r.data && !r.data.erro) cli = r.data; } catch (e) {}
@@ -145,18 +145,22 @@ function desenhar(d, cli) {
   if (d.gerente) { main.append(el("div", { class: "vazio" }, "Este acesso é de gerente. O placar geral fica na aba Metas do módulo gerente.")); $("#app").replaceChildren(...blocos); return; }
   const eu = d.eu, mes = MESES[d.mes - 1], ate = d.corte.slice(8, 10) + "/" + d.corte.slice(5, 7);
   if (!eu) { main.append(el("div", { class: "cartao" }, el("div", { class: "rot" }, mes + " de " + d.ano), el("p", { class: "frase" }, d.codigo ? "Não há meta cadastrada para o seu código (" + d.codigo + ") neste ano. Fale com o gerente." : "Seu código de representante ainda não foi cadastrado. Peça ao gerente para liberar a sua meta."))); $("#app").replaceChildren(...blocos); return; }
-  const p = eu.pct, nv = nivel(eu.meta > 0 ? p : null), sup = eu.meta * SUPER, du = diasUteis(d.corte), faltaSup = Math.max(0, sup - eu.vendido);
+  const aberto = d.mes === d.mes_atual, p = eu.pct, nv = nivel(eu.meta > 0 ? p : null), sup = eu.meta * SUPER, du = aberto ? diasUteis(d.corte) : 0, faltaSup = Math.max(0, sup - eu.vendido);
+  const selMes = el("select", { id: "mesSel", "aria-label": "Mês", style: "padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:inherit;color:inherit;font-size:16px" },
+    ...MESES.slice(0, d.mes_atual).map((n, i) => el("option", { value: i + 1, selected: i + 1 === d.mes ? true : null }, n + (i + 1 === d.mes_atual ? " (em andamento)" : ""))));
+  selMes.addEventListener("change", () => { mesEscolhido = Number(selMes.value); carregar(); });
+  main.append(el("div", { style: "display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)" }, el("label", { for: "mesSel" }, "Ver o mês"), selMes));
   const alvo = p >= 1 ? faltaSup : eu.falta, ritmo = du > 0 ? alvo / du : 0;
   /* 1. meta do mês */
   const hero = el("div", { class: "cartao" },
-    el("div", { class: "linhaTopo" }, el("div", null, el("div", { class: "rot" }, "Meta de " + mes.toLowerCase() + " · vendas até " + ate), el("div", { class: "grande" }, eu.meta > 0 ? pc(p) : brl(eu.vendido))), el("span", { class: "etq " + nv[1] }, nv[0])));
+    el("div", { class: "linhaTopo" }, el("div", null, el("div", { class: "rot" }, "Meta de " + mes.toLowerCase() + (aberto ? " · vendas até " + ate : " · mês fechado")), el("div", { class: "grande" }, eu.meta > 0 ? pc(p) : brl(eu.vendido))), el("span", { class: "etq " + nv[1] }, nv[0])));
   if (eu.meta > 0) {
     hero.append(trilha(p), el("div", { class: "marcas" }, el("span", { style: "left:0;transform:none" }, "0"), el("span", { style: "left:" + (1 / 1.45 * 100).toFixed(1) + "%" }, "Meta"), el("span", { style: "left:" + (SUPER / 1.45 * 100).toFixed(1) + "%" }, "Supermeta")),
       el("p", { class: "frase" }, p >= SUPER ? ["Supermeta batida. ", el("b", null, "Você passou " + brl(eu.vendido - sup) + " da supermeta.")]
-        : p >= 1 ? ["Meta batida! Faltam ", el("b", null, brl(faltaSup)), " para a supermeta."]
-        : ["Faltam ", el("b", null, brl(eu.falta)), " para a meta" + (du > 0 ? ": " : "."), du > 0 ? el("b", null, brl(ritmo) + " por dia útil") : null, du > 0 ? " nos " + du + (du === 1 ? " dia útil que resta." : " dias úteis que restam.") : null]),
+        : p >= 1 ? ["Meta batida! " + (aberto ? "Faltam " : "Ficaram faltando "), el("b", null, brl(faltaSup)), " para a supermeta."]
+        : [aberto ? "Faltam " : "Ficaram faltando ", el("b", null, brl(eu.falta)), " para a meta" + (du > 0 ? ": " : "."), du > 0 ? el("b", null, brl(ritmo) + " por dia útil") : null, du > 0 ? " nos " + du + (du === 1 ? " dia útil que resta." : " dias úteis que restam.") : null]),
       el("div", { class: "fatos" }, el("div", null, el("b", null, brl(eu.vendido)), el("span", null, "vendido no mês")), el("div", null, el("b", null, brl(eu.meta)), el("span", null, "meta do mês")),
-        el("div", null, el("b", null, brl(sup)), el("span", null, "supermeta (33% acima)")), el("div", null, el("b", null, String(du)), el("span", null, du === 1 ? "dia útil até o fim do mês" : "dias úteis até o fim do mês"))));
+        el("div", null, el("b", null, brl(sup)), el("span", null, "supermeta (33% acima)")), aberto ? el("div", null, el("b", null, String(du)), el("span", null, du === 1 ? "dia útil até o fim do mês" : "dias úteis até o fim do mês")) : null));
   } else hero.append(el("p", { class: "frase" }, "Você não tem meta cadastrada em " + mes.toLowerCase() + ". O valor acima é o que vendeu no mês."));
   main.append(hero);
   /* 2. prêmio */
@@ -197,7 +201,7 @@ function desenhar(d, cli) {
       return el("div", { class: "mes" }, el("div", null, MESES[h.mes - 1].slice(0, 3).toLowerCase()),
         el("div", { class: "b" }, el("span", { class: q != null && q >= 1 ? "ok" : "", style: "width:" + (q != null ? Math.min(100, q / esc * 100) : 0).toFixed(1) + "%" }), q != null ? el("i", { style: "left:" + (1 / esc * 100).toFixed(1) + "%" }) : null),
         el("div", { class: "v" }, q != null ? pc(q) + (q >= 1 ? " ✓" : "") : "sem meta")); })),
-    el("p", { class: "regra" }, "A linha marca a meta de cada mês. " + mes + " ainda está em andamento.")));
+    el("p", { class: "regra" }, "A linha marca a meta de cada mês. " + MESES[d.mes_atual - 1] + " ainda está em andamento.")));
   $("#app").replaceChildren(...blocos);
 }
 if (token) carregar(); else telaEntrar();
