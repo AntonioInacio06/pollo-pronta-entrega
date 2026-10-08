@@ -53,6 +53,11 @@ h1{font:700 20px/1.05 var(--f-disp);margin:3px 0 0}
 .buscaLinha{display:flex;flex-wrap:wrap;gap:8px;padding:9px 14px 0}
 .buscaLinha input{flex:1 1 180px}
 .catalogo{min-height:42px}
+.senhaLinha{display:flex;gap:8px} .senhaLinha input{flex:1;min-width:0}
+.olho{flex:none;padding:0 12px!important;border:1px solid var(--line)!important;border-radius:10px;background:var(--surface-2)!important;color:var(--ink-2)!important;font:500 13px var(--f-body)!important}
+.msgEntrar{color:var(--ink-2);font-size:13.5px;margin:0} .msgEntrar.erro{color:var(--crit);font-weight:600}
+.entrar .secundario{background:none!important;color:var(--ink-2)!important;border:1px solid var(--line)!important}
+.lkTopo{border:0;background:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;text-underline-offset:2px}
 .buscaLinha input{flex:1;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--muted)}
 .limpar{padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);font-size:13px;color:var(--ink-2)}
 .limpar:active{background:var(--line)}
@@ -182,19 +187,59 @@ async function carregar(silencioso) {
   if (!montado) montarTela(); else { atualizarTopo(); renderLista(); }
 }
 
-function telaEntrar(msg) {
-  montado = false;
-  const cod = el("input", { id: "cod", placeholder: "código de acesso", autocomplete: "off", autocapitalize: "none", autocorrect: "off", spellcheck: "false", enterkeyhint: "go" });
-  const ir = () => { const v = cod.value.trim(); if (!v) return; token = v; try { localStorage.setItem("pe-token", v); } catch (e) {} carregar(); };
-  cod.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); });
-  $("#app").replaceChildren(el("div", { class: "entrar" },
-    el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Pronta entrega"),
-    el("p", { style: "color:var(--ink-2);font-size:13.5px;margin:0" }, msg || "Use o link que a fábrica mandou para você, ou cole aqui o seu código de acesso."),
-    cod, el("button", { type: "button", onclick: ir }, "Entrar")));
+function campoSenha(id, rotulo, auto) {
+  const i = el("input", { id: id, type: "password", placeholder: rotulo, autocomplete: auto, autocapitalize: "none", autocorrect: "off", spellcheck: "false" });
+  const olho = el("button", { type: "button", class: "olho", "aria-label": "Mostrar ou esconder a senha", onclick: () => { i.type = i.type === "password" ? "text" : "password"; olho.textContent = i.type === "password" ? "mostrar" : "esconder"; } }, "mostrar");
+  return { i: i, no: el("div", { class: "senhaLinha" }, i, olho) };
 }
+function telaEntrar(msg, erro) {
+  montado = false;
+  const lg = el("input", { id: "login", placeholder: "Seu login", autocomplete: "username", autocapitalize: "none", autocorrect: "off", spellcheck: "false", enterkeyhint: "next" });
+  const sn = campoSenha("senha", "Sua senha", "current-password"), aviso = el("p", { class: "msgEntrar" + (erro ? " erro" : "") }, msg || "Entre com o login e a senha que o gerente enviou.");
+  const bt = el("button", { type: "button" }, "Entrar");
+  const ir = async () => {
+    const l = lg.value.trim(), p = sn.i.value; if (!l || !p) { aviso.className = "msgEntrar erro"; aviso.textContent = "Informe o login e a senha."; return; }
+    bt.disabled = true; bt.textContent = "Entrando…";
+    let r = null; try { r = await chamar("api_entrar", { p_login: l, p_senha: p }); } catch (e) {}
+    bt.disabled = false; bt.textContent = "Entrar";
+    if (!r) { aviso.className = "msgEntrar erro"; aviso.textContent = "Sem conexão agora. Confira a internet e tente de novo."; return; }
+    if (r.erro === "bloqueado") { aviso.className = "msgEntrar erro"; aviso.textContent = "Muitas tentativas com senha errada. Tente de novo em " + Math.ceil(r.segundos / 60) + " minutos, ou peça uma senha nova ao gerente."; return; }
+    if (r.erro || !r.token) { aviso.className = "msgEntrar erro"; aviso.textContent = "Login ou senha inválidos. Se ainda não recebeu a sua senha, peça ao gerente."; sn.i.value = ""; sn.i.focus(); return; }
+    token = r.token; try { localStorage.setItem("pe-token", token); } catch (e) {}
+    if (r.trocar) telaNovaSenha(p, true); else carregar();
+  };
+  lg.addEventListener("keydown", (e) => { if (e.key === "Enter") sn.i.focus(); }); sn.i.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); }); bt.addEventListener("click", ir);
+  $("#app").replaceChildren(el("div", { class: "entrar" },
+    el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Pronta entrega"), aviso, lg, sn.no, bt,
+    el("p", { class: "msgEntrar" }, "Primeiro acesso? O gerente envia o seu login e uma senha provisória; ao entrar você cria a sua. Esqueceu a senha? Peça uma nova ao gerente.")));
+}
+function telaNovaSenha(atual, primeiro) {
+  montado = false;
+  const at = campoSenha("senhaAtual", "Senha atual", "current-password"), n1 = campoSenha("novaSenha", "Nova senha", "new-password"), n2 = campoSenha("novaSenha2", "Repita a nova senha", "new-password");
+  const aviso = el("p", { class: "msgEntrar" }, primeiro ? "É o seu primeiro acesso com esta senha. Crie agora a sua senha: a provisória deixa de valer." : "Informe a senha atual e a nova.");
+  const bt = el("button", { type: "button" }, "Salvar a nova senha");
+  const ir = async () => {
+    const a = primeiro ? atual : at.i.value, n = n1.i.value;
+    const falha = (t) => { aviso.className = "msgEntrar erro"; aviso.textContent = t; };
+    if (n.length < 8 || !/[A-Za-z]/.test(n) || !/[0-9]/.test(n)) return falha("A senha precisa ter pelo menos 8 caracteres, com letras e números.");
+    if (n !== n2.i.value) return falha("As duas senhas não são iguais.");
+    bt.disabled = true; let r = null; try { r = await chamar("api_trocar_senha", { p_token: token, p_atual: a, p_nova: n }); } catch (e) {} bt.disabled = false;
+    if (!r) return falha("Sem conexão agora. Tente de novo.");
+    if (r.erro === "fraca") return falha("A senha precisa ter pelo menos 8 caracteres, com letras e números.");
+    if (r.erro === "igual") return falha("A nova senha precisa ser diferente da atual e do seu login.");
+    if (r.erro === "atual") return falha("A senha atual está incorreta.");
+    if (r.erro || !r.token) { try { localStorage.removeItem("pe-token"); } catch (e) {} token = null; return telaEntrar("Sua sessão expirou. Entre de novo.", true); }
+    token = r.token; try { localStorage.setItem("pe-token", token); } catch (e) {} toast("Senha criada."); carregar();
+  };
+  [at.i, n1.i, n2.i].forEach((i) => i.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); })); bt.addEventListener("click", ir);
+  $("#app").replaceChildren(el("div", { class: "entrar" },
+    el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, primeiro ? "Crie a sua senha" : "Trocar a senha"), aviso, primeiro ? null : at.no, n1.no, n2.no, bt,
+    primeiro ? null : el("button", { type: "button", class: "secundario", onclick: () => carregar() }, "Cancelar")));
+}
+async function sair() { const t = token; token = null; try { localStorage.removeItem("pe-token"); } catch (e) {} try { await chamar("api_sair", { p_token: t }); } catch (e) {} telaEntrar("Você saiu. Entre de novo quando quiser."); }
 function telaAviso() {
   if (dados && dados.erro === "acesso") { try { localStorage.removeItem("pe-token"); } catch (e) {} token = null;
-    return telaEntrar("Este código não vale mais. Peça o novo para a fábrica."); }
+    return telaEntrar("Entre com o seu login e a sua senha. Se ainda não recebeu, peça ao gerente."); }
   const espera = dados && dados.erro === "sem_publicacao";
   const msg = espera ? "A fábrica ainda não publicou a pronta entrega de hoje. Assim que publicar, o estoque aparece aqui."
     : "Sem conexão agora. Confira a internet e tente de novo.";
@@ -232,7 +277,8 @@ function montarTela() {
 }
 function atualizarTopo() {
   const p = dados.publicacao, r = dados.representante;
-  $("#euSou").textContent = r.nome + (r.regiao ? " · " + r.regiao : "");
+  $("#euSou").replaceChildren(r.nome + (r.regiao ? " · " + r.regiao : ""), el("br"),
+    el("button", { type: "button", class: "lkTopo", onclick: () => telaNovaSenha("", false) }, "Trocar senha"), " · ", el("button", { type: "button", class: "lkTopo", onclick: sair }, "Sair"));
   const dt = new Date(p.em), agora = new Date();
   const hhmm = dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const hoje = dt.toDateString() === agora.toDateString();

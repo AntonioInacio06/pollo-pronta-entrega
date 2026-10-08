@@ -183,15 +183,7 @@ async function carregar(mais) {
   d = r; lista = mais ? lista.concat(r.clientes || []) : (r.clientes || []);
   if (!montado) montar(); render();
 }
-function telaEntrar(msg) {
-  montado = false;
-  const cod = el("input", { id: "cod", placeholder: "código de acesso", autocomplete: "off", autocapitalize: "none", autocorrect: "off", spellcheck: "false", enterkeyhint: "go" });
-  const ir = () => { const v = cod.value.trim(); if (!v) return; token = v; try { localStorage.setItem("pe-token", v); } catch (e) {} carregar(); };
-  cod.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); });
-  $("#app").replaceChildren(el("div", { class: "entrar" }, el("div", { class: "marca" }, "Pollo Decor"), el("h1", null, "Meus clientes"),
-    el("p", { style: "color:var(--ink-2);font-size:13.5px;margin:0" }, msg || "Use o link que a fábrica mandou para você, ou cole aqui o seu código de acesso."),
-    cod, el("button", { type: "button", onclick: ir }, "Entrar")));
-}
+function telaEntrar() { try { localStorage.removeItem("pe-token"); } catch (e) {} location.replace("./"); }
 function montar() {
   montado = true;
   const bx = el("input", { type: "search", id: "busca", placeholder: "Buscar por nome, cidade, CNPJ ou código", autocomplete: "off", autocapitalize: "none", autocorrect: "off", spellcheck: "false", enterkeyhint: "search" });

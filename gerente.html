@@ -199,6 +199,9 @@ button.mini{padding:0;overflow:hidden;cursor:zoom-in}
 .mtab td.tot,.mtab tfoot td{font:600 13px var(--f-mono);padding:8px 8px}
 .mtab tfoot td{border-top:2px solid var(--line)}
 .mtab .nm{font-weight:600;white-space:normal} .mtab .cd{font-size:11.5px;color:var(--ink-3)}
+.acessoBox{grid-column:1/-1;display:grid;gap:8px;padding:12px;border:1px solid var(--accent);border-radius:10px;background:var(--accent-soft)}
+.acessoBox pre{margin:0;white-space:pre-wrap;font:500 13px/1.5 var(--f-mono);user-select:all;-webkit-user-select:all}
+.acessoBox .bt{justify-self:start}
 .consLista{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;padding:0 14px 12px}
 .consLista button{display:block;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .consLista button b{display:block;font:600 14px/1.25 var(--f-body)} .consLista button span{font-size:12px;color:var(--ink-3)}
@@ -319,6 +322,15 @@ function diasUteis(corte) { const d = new Date(corte + "T12:00:00"), fim = new D
 let jogo = null, jogoMes = null;
 let mt = { aberto: false, ano: null, linhas: null, orig: {}, origem: "", msg: "", erro: false, cons: null };
 let consERP = null, consFiltro = "", consTudo = false;
+const acessos = {};   /* senha provisória recém-gerada, por representante: só existe nesta tela, até recarregar */
+async function gerarAcesso(id) {
+  if (ocupado) return; ocupado = true;
+  try { const r = await chamar("api_acesso_representante", { p_token: token, p_id: id }); if (!r || r.erro) throw new Error("erro");
+    acessos[id] = r; reps = await chamar("api_representantes", { p_token: token }); toast("Senha provisória de " + r.nome + " gerada. Copie e envie agora."); }
+  catch (e) { toast("Não consegui gerar a senha agora."); }
+  ocupado = false; render();
+}
+function textoAcesso(a) { return "Olá, " + a.nome + ". Seu acesso à Pronta Entrega da Pollo Decor:\n\nSite: " + LINK_APP + "\nLogin: " + a.login + "\nSenha provisória: " + a.senha + "\n\nNo primeiro acesso o site pede para você criar a sua própria senha."; }
 const MAB = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const fmtMeta = (v) => v ? Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "";
 function lerNumero(t) {
@@ -770,6 +782,10 @@ function descreve(e) {
   const item = () => [d.qtd != null ? pc(d.qtd) : null, d.produto ? titulo(d.produto) : null, d.cor ? titulo(d.cor) : null].filter(Boolean).join(" · ");
   if (e.acao === "acesso") return "abriu a tela " + (d.tela === "gerente" ? "do gerente" : d.tela === "clientes" ? "de clientes" : d.tela === "painel executivo" ? "do painel executivo" : d.tela === "metas" ? "de metas" : "da pronta entrega");
   if (e.acao === "importou clientes") return fmt(d.clientes) + " clientes" + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
+  if (e.acao === "entrou com senha") return d.provisoria ? "com a senha provisória" : "";
+  if (e.acao === "gerou senha provisória") return (d.representante || "") + " · login " + (d.login || "");
+  if (e.acao === "acesso bloqueado") return (d.motivo || "") + " · " + (d.minutos || 15) + " minutos";
+  if (e.acao === "atualizou tabela de preços do PCP") return fmt(d.produtos) + " produtos";
   if (e.acao === "atualizou metas") return "metas de " + d.ano + " · " + fmt(d.representantes) + " representantes · total " + brl(d.total_depois) + (d.origem ? " · " + d.origem : "");
   if (e.acao === "importou vendas") return fmt(d.linhas) + " pedidos, emitidos de " + dataBR(d.de) + " a " + dataBR(d.ate) + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
   if (e.acao === "viu vendas do cliente") return (d.cliente || "") + " · cód. " + d.cod;
@@ -896,7 +912,10 @@ function listaCons() {
   const mostra = consTudo || termos.length ? livres : livres.slice(0, 12);
   box.replaceChildren(...[...mostra.map((c) => el("button", { type: "button", onclick: async () => {
       if (ocupado) return; ocupado = true; const nome = c.apelido || titulo(c.nome);
-      try { reps = await chamar("api_salvar_representante", { p_token: token, p_id: null, p_nome: nome, p_regiao: "", p_ativo: true, p_codigo: c.codigo, p_extras: "" }); toast(nome + " cadastrado com o código " + c.codigo + ". Copie o link dele."); await carregarConsultores(true); }
+      try { reps = await chamar("api_salvar_representante", { p_token: token, p_id: null, p_nome: nome, p_regiao: "", p_ativo: true, p_codigo: c.codigo, p_extras: "" }); await carregarConsultores(true);
+        const novo = (reps || []).filter((x) => x.papel === "representante" && x.codigo === c.codigo).sort((a, b) => b.id - a.id)[0];
+        if (novo) { const a = await chamar("api_acesso_representante", { p_token: token, p_id: novo.id }); if (a && !a.erro) { acessos[novo.id] = a; reps = await chamar("api_representantes", { p_token: token }); } }
+        toast(nome + " cadastrado. Copie o login e a senha provisória dele."); }
       catch (e) { toast("Não consegui cadastrar agora."); }
       ocupado = false; render(); } },
     el("b", null, c.apelido || titulo(c.nome)), el("span", null, "cód. " + c.codigo + " · " + fmt(c.clientes) + (c.clientes === 1 ? " cliente" : " clientes") + (c.tem_meta ? " · tem meta" : "") + (c.apelido ? " · " + titulo(c.nome) : "")))),
@@ -914,12 +933,13 @@ function renderReps() {
   const codigo = el("input", { id: "novoCodigo", placeholder: "Código no ERP", autocomplete: "off", inputmode: "numeric", style: "max-width:150px" });
   const cadastrar = async () => {
     const n = nome.value.trim(); if (!n || ocupado) return; ocupado = true;
-    try { reps = await chamar("api_salvar_representante", { p_token: token, p_id: null, p_nome: n, p_regiao: regiao.value.trim(), p_ativo: true, p_codigo: Number(codigo.value.replace(/\D/g, "")) || null, p_extras: "" }); toast(n + " cadastrado. Copie o link dele."); }
+    try { reps = await chamar("api_salvar_representante", { p_token: token, p_id: null, p_nome: n, p_regiao: regiao.value.trim(), p_ativo: true, p_codigo: Number(codigo.value.replace(/\D/g, "")) || null, p_extras: "" }); toast(n + " cadastrado. Gere a senha provisória dele logo abaixo."); }
     catch (e) { toast("Não consegui cadastrar agora."); }
     ocupado = false; render();
   };
   const blocos = lista.length ? lista.map((r) => {
-    const link = LINK_APP + "#t=" + r.token;
+    const ac = acessos[r.id];
+    const sit = !r.tem_senha ? ["crit", "Sem senha: ainda não consegue entrar"] : r.travado ? ["crit", "Travado por senha errada (15 min)"] : r.senha_provisoria ? ["lum", "Senha provisória: ainda não entrou para trocar"] : ["linha", "Senha criada por ele"];
     const alternar = async () => {
       if (ocupado) return; ocupado = true;
       try { reps = await chamar("api_salvar_representante", { p_token: token, p_id: r.id, p_nome: r.nome, p_regiao: r.regiao, p_ativo: !r.ativo });
@@ -927,7 +947,7 @@ function renderReps() {
       catch (e) { toast("Não consegui gravar agora."); }
       ocupado = false; render();
     };
-    const copiar = () => { try { navigator.clipboard.writeText(link); toast("Link de " + r.nome + " copiado"); } catch (e) { toast("Copie o link na mão."); } };
+    const copiar = () => { try { navigator.clipboard.writeText(textoAcesso(ac)).then(() => toast("Mensagem de " + r.nome + " copiada. Cole no WhatsApp."), () => toast("Copie o texto na mão.")); } catch (e) { toast("Copie o texto na mão."); } };
     const iCod = el("input", { id: "cod" + r.id, inputmode: "numeric", autocomplete: "off", value: r.codigo || "", placeholder: "sem código" });
     const iExt = el("input", { id: "ext" + r.id, inputmode: "numeric", autocomplete: "off", value: (r.codigos_extra || []).join(", "), placeholder: "nenhum" });
     const gravarAcesso = async () => {
@@ -949,7 +969,10 @@ function renderReps() {
           el("span", { class: "etq " + (r.ativo ? "linha" : "fora") }, r.ativo ? "Ativo" : "Bloqueado"),
           el("span", null, r.ultimo_acesso ? "entrou " + new Date(r.ultimo_acesso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "nunca entrou"))),
       el("div", { class: "direita" }, el("button", { class: "bt", type: "button", onclick: alternar }, r.ativo ? "Bloquear" : "Liberar")),
-      el("div", { class: "repLink" }, el("button", { class: "bt", type: "button", onclick: copiar }, "Copiar link pessoal"), el("code", null, link)),
+      el("div", { class: "repLink" }, el("span", { style: "font-size:13px" }, "Login: ", el("b", { style: "font-family:var(--f-mono)" }, r.login || "—")), el("span", { class: "etq " + sit[0] }, sit[1]),
+        el("button", { class: "bt" + (r.tem_senha ? "" : " forte"), type: "button", onclick: () => gerarAcesso(r.id) }, r.tem_senha ? "Gerar nova senha provisória" : "Gerar senha provisória")),
+      ac ? el("div", { class: "acessoBox" }, el("b", null, "Envie agora para " + r.nome + ". Esta senha não aparece de novo."),
+        el("pre", null, textoAcesso(ac)), el("button", { class: "bt forte", type: "button", onclick: copiar }, "Copiar mensagem")) : null,
       acesso);
   }) : [el("div", { class: "vazio" }, "Nenhum representante cadastrado ainda.")];
   $("#corpo").replaceChildren(
@@ -958,7 +981,7 @@ function renderReps() {
     el("div", { class: "consLista", id: "consLista" }),
     el("div", { class: "secao" }, "Ou cadastre digitando", el("span", null, "para quem não está no ERP")),
     el("div", { class: "cad" }, nome, regiao, codigo, el("button", { class: "bt forte", type: "button", onclick: cadastrar }, "Cadastrar")),
-    el("div", { class: "nota" }, "O código é o do consultor no ERP: é ele que liga o representante aos clientes dele. Em \"Também vê os códigos\" você libera os clientes de outros representantes, separando os códigos por vírgula."),
+    el("div", { class: "nota" }, "Cada representante entra com login e senha. Você gera a senha provisória, envia a mensagem e ele cria a senha dele no primeiro acesso. O código é o do consultor no ERP: é ele que liga o representante aos clientes dele. Em \"Também vê os códigos\" você libera os clientes de outros representantes, separando os códigos por vírgula."),
     ...blocos);
   listaCons();
 }
