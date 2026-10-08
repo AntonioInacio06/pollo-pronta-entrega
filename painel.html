@@ -198,6 +198,8 @@ table.tb{width:100%;border-collapse:collapse;font-size:13.5px}
 .emp button{border:0;padding:0;min-width:3px;cursor:pointer}
 .emp button:hover{filter:brightness(1.12)}
 .row.re{grid-template-columns:minmax(120px,1fr) minmax(120px,2.2fr) 70px}
+.tb td.hoje,.tb th.hoje{background:var(--band)}
+.tb tr.on td{background:var(--y26-soft)}
 .tb tr.sem td{background:var(--band);border-top:2px solid var(--line);padding-top:10px;padding-bottom:10px}
 .tb tfoot td{border-top:2px solid var(--line);font-weight:600}
 .vazioP{padding:36px 20px;text-align:center;color:var(--ink-2)}
@@ -238,7 +240,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13.5px}
       <button type="button" class="limpar" id="limpar" hidden>Limpar filtros</button>
     </div>
     <div class="tabs" id="tabs" role="tablist">
-      <button type="button" role="tab" data-t="geral">Visão geral</button><button type="button" role="tab" data-t="reps">Representantes</button><button type="button" role="tab" data-t="regioes">Regiões</button><button type="button" role="tab" data-t="produtos">Produtos</button><button type="button" role="tab" data-t="clientes">Clientes</button><button type="button" role="tab" data-t="carteira">Carteira e cargas</button><button type="button" role="tab" data-t="atividade">Atividade de clientes</button>
+      <button type="button" role="tab" data-t="geral">Visão geral</button><button type="button" role="tab" data-t="reps">Representantes</button><button type="button" role="tab" data-t="regioes">Regiões</button><button type="button" role="tab" data-t="produtos">Produtos</button><button type="button" role="tab" data-t="clientes">Clientes</button><button type="button" role="tab" data-t="metas">Metas</button><button type="button" role="tab" data-t="carteira">Carteira e cargas</button><button type="button" role="tab" data-t="atividade">Atividade de clientes</button>
     </div>
   </div>
 </div>
@@ -264,7 +266,12 @@ var REPMAP = {"DURIT REPRESENTACOES LTDA":["Durit (Grupo Inovar)",370000,1],"POL
   "RICARDO AMORIM BEZERRA DOS SANTOS FILHO":["Ricardinho",105000,1],"LUCIANO ALVES PINTO":["Luciano Alves",65000,1],"ALEXANDRE CAETANOS ALVES":["Alexandre Caetanos",26000,1],"BDX BUSINESS-BRAZ FABRISPUMA":["BDX Business (Braz)",70000,1],
   "MARSON REPRESENTACOES LTDA":["Marson (Emerson)",65000,1],"ALEXANDRE MAGALHÃES VIEIRA":["Alexandre Magalhães",65000,1],"JOSÉ RICARDO DA ROSA COUTO":["José Ricardo",65000,1],"DENES REPRESENTACAO COMERCIAL LTDA":["Denes",55000,1],
   "DO LAR REPRESENTACOES E CONSULTORIA LTDA":["Do Lar",null,0],"L G MOREIRA REPRESENTACOES LTDA":["LG Moreira",null,0],"D MIGLIORINI REPRESENTAÇÕES LTDA":["D. Migliorini",null,0],"ZAHRA REPRESENTACOES LTDA (EDER)":["Zahra (Eder)",null,0],
-  "ONI REPRESENTACOES LTDA":["ONI",null,0],"SS MARKETING DIRETO LTDA":["SS Marketing (Toninho)",null,0],"GEMEOS REPRESENTACOES LTDA":["Gêmeos",null,0]};
+  "ONI REPRESENTACOES LTDA":["ONI",null,0],"SS MARKETING DIRETO LTDA":["SS Marketing (Toninho)",null,0],"GEMEOS REPRESENTACOES LTDA":["Gêmeos",null,0],
+  "GUILHERME SILVA DE FREITAS":["Guilherme Silva de Freitas",null,1],"GUILHERME BONELES SOTELLE":["Guilherme Boneles Sotelle",null,1],"ALEXANDRE REPRESENTAÇÕES LTDA.":["Alexandre Representações",null,1],"RITHIS REPRESENTAÇÕES CAZZA MAIS AMBIENT":["Rithis",null,0]};
+/* metas mensais por consultor: relatório "Metas de Vendas para Pedido" do ERP */
+var METAS = {ano:2026, rel:"07/10/2026 às 18:31", reps:{"POLLO INDUSTRIA E TRANS. DE MOVEIS LTDA":[275847.8,389437.92,177831.84,120000.0,120000.0,120000.0,120000.0,120000.0,300000.0,0,120000.0,120000.0],"RITHIS REPRESENTAÇÕES CAZZA MAIS AMBIENT":[165508.68,233662.75,106699.1,107000.0,107000.0,107000.0,107000.0,107000.0,0,0,0,107000.0],"DURIT REPRESENTACOES LTDA":[275847.79,389437.92,177831.84,180000.0,400000.0,400000.0,400000.0,400000.0,120000.0,100000.0,0,400000.0],"EDUARDO GANDRA BAIÃO ME":[0,0,0,0,0,0,400000.0,400000.0,615000.0,375000.0,0,400000.0],"GABRIEL SOARES DA SILVA":[165508.68,233662.75,106699.1,150000.0,150000.0,150000.0,160000.0,160000.0,210000.0,180000.0,0,160000.0],"JOSÉ RICARDO DA ROSA COUTO":[0,0,0,0,0,0,80000.0,80000.0,60000.0,60000.0,0,80000.0],"MATEUS HENRIQUE DE PAULA":[110339.12,155775.17,71132.74,80000.0,80000.0,90000.0,90000.0,90000.0,0,0,0,90000.0],"ENGELES REPRESENTACOES COMERCIAIS LTDA":[80000.0,0,60000.0,80000.0,80000.0,80000.0,80000.0,80000.0,45000.0,40000.0,0,80000.0],"MENEZES REPRESENTACOES COMERCIAIS LTDA":[220678.24,250000.0,142265.47,120000.0,120000.0,120000.0,120000.0,120000.0,180000.0,150000.0,0,120000.0],"ALEXANDRE CAETANOS ALVES":[80000.0,80000.0,80000.0,80000.0,80000.0,80000.0,80000.0,80000.0,45000.0,50000.0,0,80000.0],"PAULYMAR GESTAO E CONSULTORIA LTDA":[0,60000.0,60000.0,80000.0,80000.0,80000.0,80000.0,80000.0,45000.0,50000.0,0,80000.0],"PHELLIPE ARAUJO REPRESENTANCOES LTDA":[165508.68,233662.75,106699.1,107000.0,107000.0,150000.0,150000.0,150000.0,150000.0,125000.0,0,150000.0],"LEANDRO FIGUEIREDO CORTES":[331017.35,467325.51,213398.21,214000.0,214000.0,250000.0,250000.0,250000.0,180000.0,175000.0,0,250000.0],"SS MARKETING DIRETO LTDA":[0,0,177831.84,178000.0,178000.0,230000.0,230000.0,230000.0,0,0,0,230000.0],"FCS COMERCIO DE BICICLETAS E REPRESENTA":[0,0,0,0,0,0,200000.0,200000.0,210000.0,150000.0,0,200000.0],"DENES REPRESENTACAO COMERCIAL LTDA":[0,0,0,0,0,0,80000.0,80000.0,60000.0,70000.0,0,80000.0],"LUCIANO ALVES PINTO":[0,0,0,0,0,0,120000.0,120000.0,105000.0,100000.0,0,120000.0],"GUSTAVO DE SOUZA LAUD & CIA LTDA":[0,0,0,0,0,0,150000.0,150000.0,120000.0,0,0,150000.0],"IOUSSEFF VALÉRIO REIS":[0,0,0,0,0,0,90000.0,90000.0,120000.0,100000.0,0,90000.0],"BDX BUSINESS-BRAZ FABRISPUMA":[0,0,0,0,0,0,80000.0,80000.0,75000.0,75000.0,0,120000.0],"RICARDO AMORIM BEZERRA DOS SANTOS FILHO":[0,0,0,0,0,0,120000.0,120000.0,90000.0,120000.0,0,200000.0],"ALEXANDRE MAGALHÃES VIEIRA":[0,0,0,0,0,0,50000.0,50000.0,50000.0,45000.0,0,80000.0],"MARSON REPRESENTACOES LTDA":[0,0,0,0,0,0,0,0,90000.0,75000.0,0,0],"GUILHERME BONELES SOTELLE":[0,0,0,0,0,0,0,0,90000.0,75000.0,0,0],"ALEXANDRE REPRESENTAÇÕES LTDA.":[0,0,0,0,0,0,0,0,90000.0,85000.0,0,0],"GUILHERME SILVA DE FREITAS":[0,0,0,0,0,0,0,0,0,100000.0,0,0]}};
+function metaDe(i, mes){ var v = METAS.reps[D.reps[i].r]; return ANO === METAS.ano && v ? v[mes-1] || 0 : 0; }
+function metaMes(mes){ var t = 0; if (ANO === METAS.ano) for (var k in METAS.reps) t += METAS.reps[k][mes-1] || 0; return t; }
 var STAT = {"DOCUMENTO FATURADO":"Faturado","DOCUMENTO FATURADO PARCIAL":"Faturado parcial","DOCUMENTO EM CARGA":"Em carga","DOCUMENTO LIBERADO":"Liberado","PEDIDO DE VENDA - PROCESSADO":"Processado","DOCUMENTO NAO PROCESSADO":"Não processado"};
 function montarD(P){
   var N = {reps:[], ufs:[], clis:[], cats:[], prods:[], sts:[], cores:[]};
@@ -274,6 +281,7 @@ function montarD(P){
     var r = iRep(cons, m ? {n:m[0], m:m[1], a:m[2], r:cons} : {n:repCurto(cons), m:null, a:0, r:cons}), st = STAT[b.st] || b.st || "?", oi = o.length;
     o.push([dn, r, iUf(b.uf || "??", b.uf || "??"), iCli(String(b.cc), [String(b.cc), cliDe(b.cl || ""), tit(b.ci || "")]), b.vl || 0, iSt(st, st), +b.p, +(b.de || 0), +(b.pv || 0), +(b.cg || 0), bi]);
     (b.it || []).forEach(function(x){ it.push([oi, iCat(x[10], x[10]), iProd(x[8], x[8]), x[3], x[7], iCor(x[9], x[9])]); }); });
+  Object.keys(METAS.reps).forEach(function(cons){ var m = REPMAP[cons]; iRep(cons, m ? {n:m[0], m:m[1], a:m[2], r:cons} : {n:repCurto(cons), m:null, a:0, r:cons}); });
   var hoje = new Date(), ate = maior ? Math.floor(maior/10000) + "-" + ("0" + Math.floor(maior/100) % 100).slice(-2) + "-" + ("0" + maior % 100).slice(-2)
     : hoje.getFullYear() + "-" + ("0" + (hoje.getMonth() + 1)).slice(-2) + "-" + ("0" + hoje.getDate()).slice(-2);
   return Object.assign(N, {o:o, i:it, ate:ate, rel:P.rel || "", em:P.em || ""}); }
@@ -294,7 +302,7 @@ function FAT(){ return S.modo === "fat"; }
 function DT(o){ return FAT() ? o[7] : o[0]; }          /* data-base: emissão (venda) ou data de entrega (faturamento) */
 function PAL(){ return FAT() ? "Faturamento" : "Vendas"; }
 function perNome(){ var f = S.b === CUT_M && PARCIAL ? " (até dia " + CUT_D + ")" : ""; return S.a === S.b ? MESL[S.a-1] + f : MESL[S.a-1] + " a " + MESL[S.b-1].toLowerCase() + f; }
-try { var h = location.hash.slice(1); if (["geral","reps","regioes","produtos","clientes","carteira","atividade"].indexOf(h) >= 0) S.tab = h; } catch(e){}
+try { var h = location.hash.slice(1); if (["geral","reps","regioes","produtos","clientes","metas","carteira","atividade"].indexOf(h) >= 0) S.tab = h; } catch(e){}
 
 /* ---------- utilidades ---------- */
 function el(tag, attrs){ var e = document.createElement(tag), i, k;
@@ -357,7 +365,7 @@ function calcular(){
   R.pedC = Object.keys(R.pedC).length; R.pedP = Object.keys(R.pedP).length;
   return R; }
 function mesMeta(){ return S.a === S.b ? S.a : CUT_M; }
-function temMeta(m){ return ANO > 2026 || (ANO === 2026 && m >= 9); }
+function temMeta(m){ return metaMes(m) > 0; }
 function lista(obj){ return Object.keys(obj).map(function(k){ return {k:+k, c:obj[k][0], p:obj[k][1], x:obj[k]}; }).sort(function(a,b){ return b.c - a.c || b.p - a.p; }); }
 
 /* ---------- componentes ---------- */
@@ -450,10 +458,10 @@ function kpis(R){ var nC = Object.keys(R.cliC).length, nP = Object.keys(R.cliP).
     k("Ticket médio", brl(tC), tC, tP, brl(tP)), k(FAT() ? "Clientes faturados" : "Clientes que compraram", nf0.format(nC), nC, nP, nf0.format(nP))); }
 function metaCard(R){
   var M = mesMeta(), nomeM = MESL[M-1].toLowerCase(), aberto = M === CUT_M && PARCIAL, meta = 0;
-  D.reps.forEach(function(r, i){ if (r.m && (S.rep < 0 || S.rep === i)) meta += r.m; });
+  D.reps.forEach(function(r, i){ if (S.rep < 0 || S.rep === i) meta += metaDe(i, M); });
   var c = card("Meta de " + nomeM, S.rep >= 0 ? D.reps[S.rep].n : "Empresa: rede de representantes e venda direta");
   var ate = aberto ? "Vendido até " + corte() : "Vendido no mês";
-  if (!temMeta(M)){ c.append(el("div", {class:"meta-v num", text:brl(R.setTot)}), el("p", {class:"sub", text:ate + ". As metas mensais valem a partir de setembro de 2026."})); return c; }
+  if (!temMeta(M)){ c.append(el("div", {class:"meta-v num", text:brl(R.setTot)}), el("p", {class:"sub", text:ate + ". Não há meta cadastrada no ERP para este mês."})); return c; }
   if (S.uf >= 0 || S.cat >= 0){ c.append(el("div", {class:"meta-v num", text:brl(R.setTot)}), el("p", {class:"sub", text:ate + " com o filtro atual. A meta é definida por representante; tire os filtros de estado e categoria para ver o andamento."})); return c; }
   if (!meta){ c.append(el("div", {class:"meta-v num", text:brl(R.setTot)}), el("p", {class:"sub", text:ate + ". Este representante não tem meta cadastrada."})); return c; }
   var pc = R.setTot/meta, ritmo = aberto ? CUT_D/diasMes(M) : 1, falta = Math.max(0, meta - R.setTot);
@@ -534,10 +542,10 @@ function telaReps(R){
   var c = card("Ranking de representantes", perNome() + ". Clique em um representante para filtrar o painel inteiro.", legenda());
   c.append(comMais("reps", ativos.map(function(i){ return {k:i.k, t:D.reps[i.k].n, s:D.reps[i.k].a ? null : "fora da lista atual de representantes", c:i.c, p:i.p}; }), 15, {col:"Representante", rank:true, total:tot, pick:pickRep, sel:S.rep, ordenar:true}));
   if (parados.length){ var v = parados.reduce(function(s, i){ return s + i.p; }, 0); c.append(el("p", {class:"note", text:parados.length + " representantes venderam " + brl(v) + " no mesmo período de " + A0 + " e não têm venda em " + A1 + ": " + parados.slice(0, 6).map(function(i){ return D.reps[i.k].n + " (" + brl(i.p) + ")"; }).join(", ") + (parados.length > 6 ? " e outros." : ".")})); }
-  var MM = mesMeta(), m = card("Meta de " + MESL[MM-1].toLowerCase() + " por representante", (MM === CUT_M && PARCIAL ? "Vendido até " + corte() : "Vendido no mês") + " sobre a meta cheia do mês" + (temMeta(MM) ? "" : " · as metas valem a partir de setembro de 2026") + (S.uf >= 0 || S.cat >= 0 ? " · com os filtros de estado e categoria aplicados" : ""));
+  var MM = mesMeta(), m = card("Meta de " + MESL[MM-1].toLowerCase() + " por representante", (MM === CUT_M && PARCIAL ? "Vendido até " + corte() : "Vendido no mês") + " sobre a meta cheia do mês" + (temMeta(MM) ? "" : " · sem meta cadastrada neste mês") + (S.uf >= 0 || S.cat >= 0 ? " · com os filtros de estado e categoria aplicados" : ""));
   var rows = el("div", {class:"rows"}); rows.append(el("div", {class:"row h mrow"}, el("div", {text:"Representante"}), el("div", {text:"Andamento"}), el("div", {class:"val", text:"Vendido / meta"}), el("div", {class:"d", text:"%"})));
   var tv = 0, tm = 0;
-  D.reps.map(function(r, i){ return {r:r, v:R.setRep[i] || 0}; }).filter(function(x){ return x.r.m; }).sort(function(a, z){ return z.v/z.r.m - a.v/a.r.m; }).forEach(function(x){ var pc = x.v/x.r.m; tv += x.v; tm += x.r.m;
+  D.reps.map(function(r, i){ return {r:{n:r.n, m:metaDe(i, MM)}, v:R.setRep[i] || 0}; }).filter(function(x){ return x.r.m; }).sort(function(a, z){ return z.v/z.r.m - a.v/a.r.m; }).forEach(function(x){ var pc = x.v/x.r.m; tv += x.v; tm += x.r.m;
     var row = el("div", {class:"row mrow", tabindex:"0"}, el("div", {class:"n"}, el("div", {class:"t", text:x.r.n})), el("div", {class:"mbar"}, el("span", {class:pc >= 1 ? "ok" : "", style:"width:" + Math.min(100, pc*100).toFixed(1) + "%"})),
       el("div", {class:"val num", text:brl(x.v) + " / " + brl(x.r.m).replace("R$ ", "")}), el("div", {class:"d"}, el("span", {class:"pill " + (pc >= 1 ? "up" : pc >= 0.65 ? "warn" : pc > 0 ? "down" : ""), text:pct(pc)})));
     var ls = [{k:"Vendido", v:brlFull(x.v)}, {k:"Meta", v:brlFull(x.r.m)}, {k:"Falta", v:brlFull(Math.max(0, x.r.m - x.v))}];
@@ -655,6 +663,40 @@ function telaCarteira(){
         lw.push(tr); if (aberta) ordLinhas(c.ords.slice(), true).forEach(function(l){ lw.push(l); }); }); });
     cm.append(tabela([{t:"Data"}, {t:"Carga"}, {t:"Rota e pedidos"}, {t:"Valor", r:1}], lw, 600, "cgmes")); }
   return [esc, fil, k4, cm, el("div", {class:"grid g2"}, cc, cs), sc]; }
+
+/* ---------- metas por representante ---------- */
+function telaMetas(){
+  var M = mesMeta(), nomeM = MESL[M-1].toLowerCase(), aberto = M === CUT_M && PARCIAL, V = {}, vMes = new Array(12).fill(0), mMes = [];
+  D.o.forEach(function(o){ if (Math.floor(o[0]/10000) !== ANO) return; var m = Math.floor(o[0]/100) % 100, x = V[o[1]] || (V[o[1]] = new Array(12).fill(0)); x[m-1] += o[4]; vMes[m-1] += o[4]; });
+  for (var i = 1; i <= 12; i++) mMes.push(metaMes(i));
+  var L = D.reps.map(function(r, i){ var v = V[i] || [], mt = METAS.reps[r.r] || [], ma = 0, va = 0, ano = 0; for (var k = 0; k < 12; k++){ ano += mt[k] || 0; if (k < M){ ma += mt[k] || 0; va += v[k] || 0; } }
+    return {i:i, n:r.n, m:mt[M-1] || 0, v:v[M-1] || 0, ma:ma, va:va, ano:ano, mt:mt}; }).filter(function(x){ return x.ano > 0; });
+  var esc = el("p", {class:"scope"}); esc.append(el("span", {class:"selo", text:"Metas"}), el("b", {text:"Metas de " + A1 + " do ERP"}), " · relatório Metas de Vendas para Pedido emitido em " + METAS.rel + ". O realizado é a venda pela data de emissão. Esta tela não usa os filtros de estado e categoria.");
+  if (ANO !== METAS.ano || !L.length) return [esc, el("section", {class:"card"}, el("div", {class:"vazioP", text:"Não há metas cadastradas para " + A1 + "."}))];
+  var tm = mMes[M-1], tv = vMes[M-1], tma = 0, tva = 0; for (var k2 = 0; k2 < M; k2++){ tma += mMes[k2]; tva += vMes[k2]; }
+  function pill(v, m){ if (!m) return el("span", {class:"pill", text:v ? "sem meta" : "—"}); var p = v/m; return el("span", {class:"pill " + (p >= 1 ? "up" : p >= 0.65 ? "warn" : "down"), text:pct(p)}); }
+  var k4 = el("div", {class:"kpis"}, stat("Meta de " + nomeM, brl(tm), el("span", {text:nf0.format(L.filter(function(x){ return x.m > 0; }).length) + " representantes com meta"})),
+    stat(aberto ? "Vendido até " + corte() : "Vendido em " + nomeM, brl(tv), [pill(tv, tm), el("span", {text:tm > tv ? "faltam " + brl(tm - tv) : "meta batida"})]),
+    stat("Meta acumulada, janeiro a " + nomeM, brl(tma), el("span", {text:"meta do ano inteiro: " + brl(mMes.reduce(function(a, b){ return a + b; }, 0))})),
+    stat("Vendido acumulado", brl(tva), [pill(tva, tma), el("span", {text:(tma > tva ? "faltam " + brl(tma - tva) : "acima da meta") + " · todas as vendas, inclusive de quem não tem meta"})]));
+  var g = card("Meta × vendas por mês em " + A1, "Vendas pela data de emissão. Clique em um mês para ver as metas dele.", el("div", {class:"legend"}, el("span", null, el("i", {style:"background:var(--y26)"}), "Vendas"), el("span", null, el("i", {style:"background:var(--y25)"}), "Meta")));
+  g.append(grafico({a:vMes, b:mMes, na:CUT_M, nb:12, ca:"--y26", cb:"--y25", la:"Vendas", lb:"Meta", fimA:"Vendas", fimB:"Meta", tracoA:PARCIAL, dif:"valor", faixa:[S.a, S.b], clique:true, sufixo:" de " + A1, aria:"Meta e vendas por mês em " + A1}));
+  var ls = L.slice().sort(function(a, z){ return z.m - a.m || z.ma - a.ma; });
+  var linhas = ls.map(function(x){ return el("tr", {class:S.rep === x.i ? "on" : null}, el("td", null, lk(x.n, function(){ pickRep(x.i); })), el("td", {class:"r num", text:x.m ? brlFull(x.m) : "—"}), el("td", {class:"r num", text:brlFull(x.v)}), el("td", {class:"r"}, pill(x.v, x.m)),
+      el("td", {class:"r num", text:x.m > x.v ? brlFull(x.m - x.v) : "—"}), el("td", {class:"r num", text:brlFull(x.ma)}), el("td", {class:"r num", text:brlFull(x.va)}), el("td", {class:"r"}, pill(x.va, x.ma))); });
+  var semMeta = 0; D.reps.forEach(function(r, i){ if (!METAS.reps[r.r] && V[i]) semMeta += V[i][M-1] || 0; });
+  var tc = card("Meta e vendido por representante em " + nomeM, (aberto ? "Vendido até " + corte() + ". " : "") + "Acumulado = janeiro a " + nomeM + ". Clique no nome para filtrar o painel pelo representante.");
+  tc.append(tabela([{t:"Representante"}, {t:"Meta do mês", r:1}, {t:"Vendido", r:1}, {t:"%", r:1}, {t:"Falta", r:1}, {t:"Meta acumulada", r:1}, {t:"Vendido acumulado", r:1}, {t:"%", r:1}], linhas, 100, "metas",
+    el("tr", null, el("td", {text:"Total com meta"}), el("td", {class:"r num", text:brlFull(tm)}), el("td", {class:"r num", text:brlFull(ls.reduce(function(a, x){ return a + x.v; }, 0))}), el("td", {class:"r"}, pill(ls.reduce(function(a, x){ return a + x.v; }, 0), tm)),
+      el("td", {class:"r num", text:""}), el("td", {class:"r num", text:brlFull(tma)}), el("td", {class:"r num", text:brlFull(ls.reduce(function(a, x){ return a + x.va; }, 0))}), el("td", {class:"r"}, pill(ls.reduce(function(a, x){ return a + x.va; }, 0), tma)))));
+  if (semMeta > 0.5) tc.append(el("p", {class:"note", text:"Além disso, " + brl(semMeta) + " foram vendidos em " + nomeM + " por consultores sem meta cadastrada neste ano."}));
+  var mc = card("Metas de " + A1 + " mês a mês", "Valores em R$ mil, como estão no ERP. A coluna destacada é o mês selecionado.");
+  var cab = [{t:"Representante"}].concat(MES.map(function(m){ return {t:m, r:1}; })).concat([{t:"Ano", r:1}]);
+  var ml = L.slice().sort(function(a, z){ return z.ano - a.ano; }).map(function(x){ var tr = el("tr", {class:S.rep === x.i ? "on" : null}, el("td", {text:x.n}));
+    for (var k = 0; k < 12; k++) tr.append(el("td", {class:"r num" + (k === M-1 ? " hoje" : ""), text:x.mt[k] ? nf0.format(x.mt[k]/1000) : "—"})); tr.append(el("td", {class:"r num", text:nf0.format(x.ano/1000)})); return tr; });
+  var pe = el("tr", null, el("td", {text:"Total"})); mMes.forEach(function(v, k){ pe.append(el("td", {class:"r num" + (k === M-1 ? " hoje" : ""), text:v ? nf0.format(v/1000) : "—"})); }); pe.append(el("td", {class:"r num", text:nf0.format(mMes.reduce(function(a, b){ return a + b; }, 0)/1000)}));
+  mc.append(tabela(cab, ml, 100, "metasano", pe));
+  return [esc, k4, g, tc, mc]; }
 
 /* ---------- atividade e inatividade de clientes ---------- */
 var CLS = [{k:"rec", n:"Recorrente", d:"comprou nos últimos 45 dias", cor:"--good", pill:"up"}, {k:"ati", n:"Ativo", d:"última compra entre 46 e 90 dias", cor:"--fat", pill:""},
@@ -972,7 +1014,7 @@ function opcoes(){
   document.getElementById("rodape").textContent = "Fonte: Relatório de Documentos Analítico do ERP (pedidos classificados como VENDA; mostruário e remessas ficam fora). "
     + "Venda é o pedido pela data de emissão. Faturamento é a entrega do pedido pela Dt.Entrega do ERP, com número de carga; pedido sem Dt.Entrega está em aberto. Como o relatório começa nos pedidos emitidos em 01/01/2025, o faturamento do início de 2025 fica incompleto. "
     + "Comparações usam sempre o mesmo intervalo de " + A0 + (PARCIAL ? ", com " + MESL[CUT_M-1].toLowerCase() + " cortado no dia " + CUT_D + " nos dois anos. " : ". ")
-    + "Meta mensal de R$ 3.596.000 (rede + venda direta), vigente desde setembro de 2026, valor cheio, sem a rampa dos representantes novos. Pedidos recentes ainda podem ser cancelados, o que reduz os números do mês em aberto."; }
+    + "Metas mensais por representante conforme o relatório Metas de Vendas para Pedido do ERP, emitido em " + METAS.rel + "; a meta é medida sobre as vendas (emissão). Pedidos recentes ainda podem ser cancelados, o que reduz os números do mês em aberto."; }
 function ligar(){
   fRep.addEventListener("change", function(){ S.rep = +fRep.value; render(); }); fUf.addEventListener("change", function(){ S.uf = +fUf.value; render(); }); fCat.addEventListener("change", function(){ S.cat = +fCat.value; render(); });
   fDe.addEventListener("change", function(){ S.a = +fDe.value; if (S.b < S.a) S.b = S.a; render(); }); fAte.addEventListener("change", function(){ S.b = +fAte.value; if (S.a > S.b) S.a = S.b; render(); });
@@ -989,7 +1031,7 @@ function render(){
   document.querySelectorAll("#tabs button").forEach(function(b){ b.setAttribute("aria-selected", String(b.dataset.t === S.tab)); });
   fRep.value = S.rep; fUf.value = S.uf; fCat.value = S.cat; fDe.value = S.a; fAte.value = S.b;
   document.getElementById("limpar").hidden = S.rep < 0 && S.uf < 0 && S.cat < 0 && S.a === 1 && S.b === CUT_M;
-  var tela = S.tab === "atividade" ? telaAtividade() : S.tab === "carteira" ? telaCarteira() : [escopo()].concat({geral:telaGeral, reps:telaReps, regioes:telaRegioes, produtos:telaProdutos, clientes:telaClientes}[S.tab](calcular()));
+  var tela = S.tab === "metas" ? telaMetas() : S.tab === "atividade" ? telaAtividade() : S.tab === "carteira" ? telaCarteira() : [escopo()].concat({geral:telaGeral, reps:telaReps, regioes:telaRegioes, produtos:telaProdutos, clientes:telaClientes}[S.tab](calcular()));
   app.replaceChildren.apply(app, tela); if (S.det) renderDet();
   if (S.cgFoco){ S.cgFoco = false; var n = document.getElementById("cgCli"); if (n){ n.focus(); try { n.setSelectionRange(n.value.length, n.value.length); } catch(e){} } } }
 opcoes(); ligar(); render();
