@@ -189,6 +189,21 @@ button.mini{padding:0;overflow:hidden;cursor:zoom-in}
 .jg .trilha{margin:8px 0 4px;height:10px} .jg .trilha i{top:-4px;bottom:-4px}
 .jg .nums{text-align:right;font:600 13px/1.35 var(--f-mono);white-space:nowrap} .jg .nums small{display:block;font:400 11.5px var(--f-body);color:var(--ink-3)}
 @media (max-width:640px){.jg{grid-template-columns:30px 1fr auto} .jg .meio{grid-column:1/-1}}
+.mtw{overflow-x:auto;background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.mtab{border-collapse:collapse;font-size:13px;min-width:100%}
+.mtab th{font:600 10.5px var(--f-disp);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);padding:10px 6px 6px;text-align:right;white-space:nowrap}
+.mtab th:first-child,.mtab td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);padding-left:14px;z-index:1;min-width:170px;max-width:220px}
+.mtab td{padding:4px 3px;border-top:1px solid var(--line-2);text-align:right;white-space:nowrap}
+.mtab td input{width:92px;padding:7px 6px;border:1px solid var(--line);border-radius:7px;background:var(--muted);text-align:right;font:500 13px var(--f-mono)}
+.mtab td input.mud{border-color:var(--accent);background:var(--accent-soft)}
+.mtab td.tot,.mtab tfoot td{font:600 13px var(--f-mono);padding:8px 8px}
+.mtab tfoot td{border-top:2px solid var(--line)}
+.mtab .nm{font-weight:600;white-space:normal} .mtab .cd{font-size:11.5px;color:var(--ink-3)}
+.consLista{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;padding:0 14px 12px}
+.consLista button{display:block;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.consLista button b{display:block;font:600 14px/1.25 var(--f-body)} .consLista button span{font-size:12px;color:var(--ink-3)}
+.consLista button:active{background:var(--accent-soft)}
+@media (hover:hover) and (pointer:fine){.consLista button:hover{border-color:var(--accent)}}
 .rodapeAud{padding:14px;font-size:12px;color:var(--ink-3);line-height:1.5}
 @media (hover:hover) and (pointer:fine){
   .uso:hover{background:var(--muted)}
@@ -302,11 +317,129 @@ function trilha(p) {
 }
 function diasUteis(corte) { const d = new Date(corte + "T12:00:00"), fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); let n = 0; for (let x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); x <= fim; x.setDate(x.getDate() + 1)) if (x.getDay() % 6) n++; return n; }
 let jogo = null, jogoMes = null;
+let mt = { aberto: false, ano: null, linhas: null, orig: {}, origem: "", msg: "", erro: false, cons: null };
+let consERP = null, consFiltro = "", consTudo = false;
+const MAB = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const fmtMeta = (v) => v ? Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "";
+function lerNumero(t) {
+  if (typeof t === "number") return isFinite(t) ? t : NaN;
+  let s = String(t == null ? "" : t).replace(/R\$|\s/g, ""); if (!s) return NaN;
+  if (!/^-?[\d.,]+$/.test(s)) return NaN;
+  if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", "."); else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+  const n = parseFloat(s); return isFinite(n) ? n : NaN;
+}
+function carregarScript(src) { return new Promise((ok, falha) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => falha(new Error("script")); document.head.append(s); }); }
+async function carregarConsultores(forcar) { if (consERP && !forcar) return; try { const r = await chamar("api_consultores", { p_token: token }); if (Array.isArray(r)) consERP = r; } catch (e) {} }
+async function abrirMetas(ano) {
+  mt.aberto = true; mt.msg = ""; mt.erro = false; mt.linhas = null; render();
+  try { const r = await chamar("api_metas", { p_token: token, p_ano: ano || mt.ano || null }); if (!r || r.erro) throw new Error("erro");
+    mt.ano = r.ano; mt.atualizado = r.atualizado; mt.linhas = (r.metas || []).map((m) => ({ codigo: m.codigo, nome: m.nome, apelido: m.apelido, valores: (m.valores || []).map(Number) }));
+    mt.orig = {}; for (const l of mt.linhas) mt.orig[l.codigo] = l.valores.slice(); mt.origem = ""; await carregarConsultores(); }
+  catch (e) { mt.msg = "Não consegui carregar as metas."; mt.erro = true; }
+  render();
+}
+/* ----- leitura de arquivo: planilha (csv/excel) ou o PDF "Metas de Vendas para Pedido" do ERP ----- */
+function lerMetasTabela(rows) {
+  let h = -1, col = {}, tot = -1;
+  for (let i = 0; i < rows.length && h < 0; i++) { const c = {}; let n = 0; (rows[i] || []).forEach((v, j) => { const t = semAcento(v).trim().slice(0, 3), m = MAB.indexOf(t); if (m >= 0 && !(m in c) && /^[a-zç]+$/.test(semAcento(v).trim())) { c[m] = j; n++; } });
+    if (n >= 6) { h = i; col = c; (rows[i] || []).forEach((v, j) => { if (/^total/.test(semAcento(v).trim())) tot = j; }); } }
+  if (h < 0) return [];
+  const alvos = Object.keys(col).map((m) => [Number(m), col[m]]); if (tot >= 0) alvos.push([-1, tot]);
+  const out = new Map();
+  for (let i = h + 1; i < rows.length; i++) { const r = rows[i] || []; let j0 = r.findIndex((v) => String(v == null ? "" : v).trim() !== ""); if (j0 < 0) continue;
+    const c0 = String(r[j0]).trim().replace(/\.0+$/, ""); if (!/^\d{3,6}$/.test(c0)) continue;
+    let nome = "", jn = j0; for (let j = j0 + 1; j < r.length; j++) { const v = String(r[j] == null ? "" : r[j]).trim(); if (v && /[A-Za-zÀ-ÿ]/.test(v)) { nome = v; jn = j; break; } }
+    if (!nome) continue; const vals = new Array(12).fill(0), posto = {};
+    for (let j = jn + 1; j < r.length; j++) { const n = lerNumero(r[j]); if (isNaN(n)) continue; let melhor = null, d = 1e9; for (const [m, jj] of alvos) { const dd = Math.abs(j - jj); if (dd < d) { d = dd; melhor = m; } }
+      if (melhor != null && melhor >= 0 && !posto[melhor]) { vals[melhor] = n; posto[melhor] = 1; } }
+    if (!out.has(Number(c0))) out.set(Number(c0), { codigo: Number(c0), nome: nome, valores: vals }); }
+  return [...out.values()];
+}
+async function lerMetasPdf(buf) {
+  if (!window.pdfjsLib) { await carregarScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"); window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; }
+  const doc = await window.pdfjsLib.getDocument({ data: buf }).promise, out = new Map(), NOMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  let dir = null, dirTot = null;
+  for (let p = 1; p <= doc.numPages; p++) { const tc = await (await doc.getPage(p)).getTextContent(), toks = [];
+    for (const it of tc.items) { const s = it.str || "", L = s.length; if (!L || !s.trim()) continue; const x0 = it.transform[4], w = it.width || 0, y = it.transform[5]; const re = /\S+/g; let m;
+      while ((m = re.exec(s))) toks.push({ s: m[0], x0: x0 + w * (m.index / L), x1: x0 + w * ((m.index + m[0].length) / L), y: y }); }
+    const cab = NOMES.map((n) => toks.find((t) => t.s === n));
+    if (cab.filter(Boolean).length >= 10) { dir = cab.map((t) => (t ? t.x1 : null)); const yc = cab.find(Boolean).y, tt = toks.find((t) => t.s === "Total" && Math.abs(t.y - yc) < 3); dirTot = tt ? tt.x1 : null; }
+    if (!dir) continue;
+    toks.sort((a, b) => b.y - a.y || a.x0 - b.x0); const linhas = []; for (const t of toks) { const u = linhas[linhas.length - 1]; if (u && Math.abs(u.y - t.y) <= 2.5) u.t.push(t); else linhas.push({ y: t.y, t: [t] }); }
+    for (const ln of linhas) { const ts = ln.t.sort((a, b) => a.x0 - b.x0); if (!/^\d{4,6}$/.test(ts[0].s)) continue;
+      const din = (s) => /^\d{1,3}(\.\d{3})*,\d{2}$/.test(s), k = ts.findIndex((t, i) => i > 0 && din(t.s)), nome = ts.slice(1, k < 0 ? ts.length : k).map((t) => t.s).join(" "); if (!/[A-Za-zÀ-ÿ]/.test(nome)) continue;
+      const vals = new Array(12).fill(0);
+      for (const t of ts) { if (!din(t.s)) continue; let melhor = -2, d = 1e9; dir.forEach((x, i) => { if (x != null && Math.abs(x - t.x1) < d) { d = Math.abs(x - t.x1); melhor = i; } }); if (dirTot != null && Math.abs(dirTot - t.x1) < d) melhor = -1;
+        if (melhor >= 0) vals[melhor] = lerNumero(t.s); }
+      const cod = Number(ts[0].s); if (!out.has(cod)) out.set(cod, { codigo: cod, nome: nome, valores: vals }); } }
+  return [...out.values()];
+}
+async function importarMetas(arquivo) {
+  mt.msg = "Lendo " + arquivo.name + "…"; mt.erro = false; render();
+  let lidas = [];
+  try { const buf = await arquivo.arrayBuffer();
+    if (/\.pdf$/i.test(arquivo.name)) lidas = await lerMetasPdf(buf);
+    else if (/\.xlsx?$/i.test(arquivo.name)) { if (!window.XLSX) await carregarScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"); const wb = window.XLSX.read(buf, { type: "array" }); let rows = [];
+      for (const n of wb.SheetNames) rows = rows.concat(window.XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: "" })); lidas = lerMetasTabela(rows); }
+    else { let txt = new TextDecoder("utf-8").decode(buf); if (txt.indexOf("�") >= 0) txt = new TextDecoder("iso-8859-1").decode(buf);
+      const ls = txt.split(/\r?\n/), sep = [";", "\t", ","].map((s) => [s, Math.max(...ls.slice(0, 40).map((l) => l.split(s).length))]).sort((a, b) => b[1] - a[1])[0][0];
+      lidas = lerMetasTabela(ls.map((l) => l.split(sep).map((c) => c.replace(/^"|"$/g, "")))); } }
+  catch (e) { lidas = []; }
+  if (!lidas.length) { mt.msg = "Não achei metas neste arquivo. Ele precisa ter uma linha de cabeçalho com os meses (Janeiro a Dezembro) e uma linha por representante começando pelo código."; mt.erro = true; render(); return; }
+  let novos = 0, mud = 0;
+  for (const l of lidas) { const e = mt.linhas.find((x) => x.codigo === l.codigo);
+    if (e) { if (e.valores.some((v, i) => Math.abs((v || 0) - (l.valores[i] || 0)) > 0.005)) mud++; e.valores = l.valores; }
+    else { const c = (consERP || []).find((x) => x.codigo === l.codigo); mt.linhas.push({ codigo: l.codigo, nome: c ? c.nome : l.nome, apelido: "", valores: l.valores, novo: true }); novos++; } }
+  mt.origem = "arquivo " + arquivo.name; mt.erro = false;
+  mt.msg = "Arquivo " + arquivo.name + " lido: " + lidas.length + " representantes (" + mud + " com meta diferente da atual, " + novos + " novos). Confira os valores destacados e clique em Gravar metas. Nada foi gravado ainda.";
+  render();
+}
+async function gravarMetas() {
+  if (ocupado || !mt.linhas) return; ocupado = true; mt.msg = "Gravando…"; mt.erro = false; render();
+  try { const r = await chamar("api_salvar_metas", { p_token: token, p_dados: { ano: mt.ano, origem: mt.origem || "edição manual", metas: mt.linhas.map((l) => ({ codigo: l.codigo, nome: l.nome, apelido: l.apelido || "", valores: l.valores.map((v) => Number(v) || 0) })) } });
+    if (!r || r.erro) throw new Error("erro"); ocupado = false; toast("Metas de " + mt.ano + " gravadas: " + fmt(r.representantes) + " representantes."); jogo = null; await abrirMetas(mt.ano); mt.msg = "Metas gravadas. O placar e a página de cada representante já usam os valores novos."; render(); carregarJogo(); return; }
+  catch (e) { mt.msg = "Não consegui gravar as metas agora. Nada foi alterado."; mt.erro = true; }
+  ocupado = false; render();
+}
+function renderMetasEd() {
+  const corpo = $("#corpo");
+  const voltar = el("button", { class: "bt", type: "button", onclick: () => { mt.aberto = false; render(); if (!jogo) carregarJogo(); } }, "← Voltar ao placar");
+  if (!mt.linhas) { corpo.replaceChildren(el("div", { class: "ferramentas" }, voltar), el("div", { class: "vazio" }, mt.erro ? mt.msg : "Carregando as metas…")); return; }
+  const anoAtual = new Date().getFullYear(), anos = [...new Set([mt.ano, anoAtual, anoAtual + 1])].sort();
+  const sAno = el("select", { id: "mtAno", "aria-label": "Ano" }, ...anos.map((a) => el("option", { value: a, selected: a === mt.ano ? true : null }, "Metas de " + a)));
+  sAno.addEventListener("change", () => abrirMetas(Number(sAno.value)));
+  const arq = el("input", { type: "file", id: "mtArq", accept: ".csv,.txt,.xls,.xlsx,.pdf", hidden: true });
+  arq.addEventListener("change", () => { const f = arq.files && arq.files[0]; arq.value = ""; if (f) importarMetas(f); });
+  const fora = (consERP || []).filter((c) => !mt.linhas.some((l) => l.codigo === c.codigo));
+  const sNovo = el("select", { id: "mtNovo", "aria-label": "Adicionar representante" }, el("option", { value: "" }, "Adicionar representante…"), ...fora.map((c) => el("option", { value: c.codigo }, c.codigo + " · " + titulo(c.nome))));
+  sNovo.addEventListener("change", () => { const c = fora.find((x) => String(x.codigo) === sNovo.value); if (!c) return; mt.linhas.push({ codigo: c.codigo, nome: c.nome, apelido: c.apelido || "", valores: new Array(12).fill(0), novo: true }); render(); });
+  const topo = el("div", { class: "ferramentas" }, voltar, sAno, arq, el("button", { class: "bt", type: "button", onclick: () => arq.click() }, "Importar arquivo (CSV, Excel ou PDF)"), sNovo,
+    el("button", { class: "bt forte", type: "button", onclick: gravarMetas }, "Gravar metas"));
+  const somaCol = (i) => mt.linhas.reduce((a, l) => a + (l.valores[i] || 0), 0), somaLin = (l) => l.valores.reduce((a, v) => a + (v || 0), 0);
+  const tb = el("tbody");
+  mt.linhas.forEach((l, li) => { const o = mt.orig[l.codigo], tr = el("tr", null, el("td", null, el("div", { class: "nm" }, l.apelido || titulo(l.nome)), el("div", { class: "cd" }, "cód. " + l.codigo + (l.novo ? " · novo" : ""))));
+    l.valores.forEach((v, i) => { const inp = el("input", { id: "mt_" + l.codigo + "_" + i, inputmode: "decimal", autocomplete: "off", value: fmtMeta(v), class: !o || Math.abs((o[i] || 0) - (v || 0)) > 0.005 ? "mud" : null, "aria-label": (l.apelido || l.nome) + " " + MESES[i] });
+      inp.addEventListener("change", () => { const n = inp.value.trim() === "" ? 0 : lerNumero(inp.value); if (isNaN(n) || n < 0) { inp.value = fmtMeta(l.valores[i]); toast("Valor inválido. Use só números, por exemplo 120000 ou 120.000,00."); return; }
+        l.valores[i] = n; inp.value = fmtMeta(n); inp.className = !o || Math.abs((o[i] || 0) - n) > 0.005 ? "mud" : ""; if (!mt.origem) mt.origem = "edição manual";
+        $("#mtl_" + l.codigo).textContent = fmtMeta(somaLin(l)) || "0"; $("#mtc_" + i).textContent = fmtMeta(somaCol(i)) || "0"; $("#mtg").textContent = fmtMeta(mt.linhas.reduce((a, x) => a + somaLin(x), 0)) || "0"; });
+      tr.append(el("td", null, inp)); });
+    tr.append(el("td", { class: "tot", id: "mtl_" + l.codigo }, fmtMeta(somaLin(l)) || "0"), el("td", null, el("button", { class: "bt", type: "button", title: "Tirar as metas deste representante", onclick: () => { mt.linhas.splice(li, 1); if (!mt.origem) mt.origem = "edição manual"; render(); } }, "Tirar")));
+    tb.append(tr); });
+  const pe = el("tr", null, el("td", null, "Total")); for (let i = 0; i < 12; i++) pe.append(el("td", { id: "mtc_" + i }, fmtMeta(somaCol(i)) || "0")); pe.append(el("td", { id: "mtg" }, fmtMeta(mt.linhas.reduce((a, x) => a + somaLin(x), 0)) || "0"), el("td"));
+  const tabela = el("table", { class: "mtab" }, el("thead", null, el("tr", null, el("th", null, "Representante"), ...MAB.map((m) => el("th", null, m)), el("th", null, "Ano"), el("th"))), tb, el("tfoot", null, pe));
+  const at = mt.atualizado;
+  corpo.replaceChildren(...[topo,
+    mt.msg ? el("div", { class: "nota", style: mt.erro ? "background:var(--crit-bg);color:var(--crit)" : null }, mt.msg) : null,
+    el("div", { class: "secao" }, "Metas de " + mt.ano + " por mês, em reais", el("span", null, (at ? "última alteração em " + quandoBR(at.em) + " por " + (at.por || "?") + (at.origem ? " (" + at.origem + ")" : "") + " · " : "") + "campo destacado = diferente do que está gravado")),
+    el("div", { class: "mtw" }, tabela),
+    el("div", { class: "rodapeAud" }, "Para editar, clique no valor, digite e saia do campo; depois clique em Gravar metas. O arquivo pode ser o PDF \"Metas de Vendas para Pedido\" do ERP, ou uma planilha (CSV ou Excel) com o código do representante na primeira coluna e uma coluna para cada mês, de Janeiro a Dezembro. O arquivo troca as metas dos representantes que estão nele; os demais ficam como estão. Deixe em branco o mês sem meta.")].filter(Boolean));
+}
 async function carregarJogo() {
   try { const r = await chamar("api_jogo", { p_token: token, p_mes: jogoMes }); if (r && !r.erro) jogo = r; } catch (e) { toast("Não consegui carregar as metas."); }
   if (montado && aba === "jogo") render();
 }
 function renderJogo() {
+  if (mt.aberto) { renderMetasEd(); return; }
   const corpo = $("#corpo"), d = jogo;
   if (!d) { corpo.replaceChildren(el("div", { class: "vazio" }, "Carregando o placar…")); return; }
   if (d.vazio) { corpo.replaceChildren(el("div", { class: "vazio" }, "Ainda não há vendas carregadas. Envie o relatório de pedidos pelo Painel Executivo.")); return; }
@@ -316,27 +449,30 @@ function renderJogo() {
   const selMes = el("select", { id: "jogoMes", "aria-label": "Mês do placar" }, ...MESES.slice(0, d.mes_atual).map((m, i) => el("option", { value: i + 1, selected: i + 1 === d.mes ? true : null }, m + (i + 1 === d.mes_atual ? " (em andamento, até " + ate + ")" : " (fechado)"))));
   selMes.addEventListener("change", () => { jogoMes = Number(selMes.value); carregarJogo(); });
   const barraMes = el("div", { class: "ferramentas" }, el("label", { for: "jogoMes" }, "Mês do placar"), selMes,
+    el("button", { class: "bt forte", type: "button", onclick: () => abrirMetas() }, "Editar ou importar metas"),
     el("span", { style: "font-size:12.5px;color:var(--ink-2)" }, "No Painel Executivo, escolha o mesmo mês no topo para comparar os números."));
+  const comVenda = com.filter((x) => x.vendido > 0), zerados = com.filter((x) => !(x.vendido > 0));
   const placar = el("div", { class: "placar" },
     el("div", null, el("div", { class: "rot" }, "Meta de " + mes.toLowerCase()), el("div", { class: "val" }, brl(tm)), el("div", { class: "un" }, fmt(com.length) + " representantes com meta")),
     el("div", null, el("div", { class: "rot" }, aberto ? "Vendido até " + ate : "Vendido em " + mes.toLowerCase()), el("div", { class: "val ped" }, brl(tv)), el("div", { class: "un" }, pc(tm ? tv / tm : null) + " da meta · " + (aberto ? du + " dias úteis restantes" : "mês fechado") + (tv - tvCom > 0.5 ? " · inclui " + brl(tv - tvCom) + " de quem não tem meta no mês" : ""))),
     el("div", null, el("div", { class: "rot" }, "Bateram a meta"), el("div", { class: "val" }, fmt(bat)), el("div", { class: "un" }, fmt(sup) + " na supermeta (33% acima)")),
     el("div", null, el("div", { class: "rot" }, "Prêmio estimado"), el("div", { class: "val pend" }, brl(prem)), el("div", { class: "un" }, "0,5% na meta + 0,5% na supermeta")));
-  const podio = el("div", { class: "podio" }, ...com.slice(0, 3).map((x) => el("div", { class: "p" }, el("div", { class: "lugar" }, x.pos + "º lugar"), el("b", null, x.nome), el("strong", null, pc(x.pct)),
+  const podio = el("div", { class: "podio" }, ...comVenda.slice(0, 3).map((x) => el("div", { class: "p" }, el("div", { class: "lugar" }, x.pos + "º lugar"), el("b", null, x.nome), el("strong", null, pc(x.pct)),
     el("small", null, fmt(x.pontos) + " pontos · " + brl(x.vendido) + " de " + brl(x.meta)))));
-  const linhas = com.map((x) => { const nv = nivel(x.pct), s = x.meta * SUPER;
+  const linhas = comVenda.map((x) => { const nv = nivel(x.pct), s = x.meta * SUPER;
     return el("div", { class: "jg" }, el("div", { class: "pos" }, x.pos + "º"),
       el("div", null, el("div", { class: "resNome" }, x.nome), el("div", { class: "resSub" }, el("span", { class: "etq " + nv[1] }, nv[0]), el("span", null, fmt(x.pontos) + " pontos"),
         x.novos ? el("span", null, fmt(x.novos) + (x.novos === 1 ? " cliente novo" : " clientes novos")) : null, x.reativados ? el("span", null, fmt(x.reativados) + (x.reativados === 1 ? " reativado" : " reativados")) : null,
         x.sequencia >= 2 ? el("span", { class: "etq neutra" }, x.sequencia + " meses seguidos") : null)),
       el("div", { class: "meio" }, trilha(x.pct), el("div", { style: "font-size:11.5px;color:var(--ink-3)" }, x.pct >= SUPER ? "passou a supermeta de " + brl(s) : x.pct >= 1 ? (aberto ? "faltam " : "ficaram faltando ") + brl(s - x.vendido) + " para a supermeta" : (aberto ? "faltam " : "ficaram faltando ") + brl(x.falta) + " para a meta" + (du > 0 ? " · " + brl(x.falta / du) + " por dia útil" : ""))),
       el("div", { class: "nums" }, pc(x.pct), el("small", null, brl(x.vendido) + " de " + brl(x.meta)), premio(x) ? el("small", { style: "color:var(--ok)" }, "prêmio ≈ " + brl(premio(x))) : null)); });
-  corpo.replaceChildren(barraMes, placar, com.length ? podio : null,
+  corpo.replaceChildren(...[barraMes, placar, comVenda.length ? podio : null,
     el("div", { class: "secao" }, "Placar de " + mes.toLowerCase() + (aberto ? " (até " + ate + ")" : " (mês fechado)"), el("span", null, "ordenado por pontos · a linha escura é a meta e a colorida, a supermeta")),
-    ...(linhas.length ? linhas : [el("div", { class: "vazio" }, "Nenhum representante com meta neste mês.")]),
+    ...(linhas.length ? linhas : [el("div", { class: "vazio" }, "Nenhum representante com meta vendeu neste mês.")]),
+    zerados.length ? el("div", { class: "secao" }, "Com meta e sem venda no mês (" + zerados.length + ")", el("span", null, zerados.map((x) => x.nome + " " + brl(x.meta)).join(" · "))) : null,
     sem.length ? el("div", { class: "secao" }, "Venderam sem ter meta no mês", el("span", null, sem.map((x) => x.nome + " " + brl(x.vendido)).join(" · "))) : null,
     el("div", { class: "rodapeAud" }, "Pontos: 1 por cada 1% da meta, 5 por cliente novo e 3 por cliente reativado (voltou a comprar depois de mais de 180 dias). Prêmio: +0,5% de comissão ao bater a meta e mais +0,5% ao bater a supermeta (33% acima), estimado aqui sobre as vendas do mês. "
-      + "Cada representante vê só a própria meta, a própria posição e quanto o líder já fez; não vê nomes nem valores dos colegas. Metas do relatório do ERP; a análise mês a mês está na aba Metas do Painel Executivo."));
+      + "Cada representante vê só a própria meta, a própria posição e quanto o líder já fez; não vê nomes nem valores dos colegas. Metas do relatório do ERP; a análise mês a mês está na aba Metas do Painel Executivo.")].filter(Boolean));
 }
 let pe = { d: null, fotos: {}, novas: {}, busca: "", filtro: "todos", alvo: null };
 async function carregarPE() {
@@ -634,6 +770,7 @@ function descreve(e) {
   const item = () => [d.qtd != null ? pc(d.qtd) : null, d.produto ? titulo(d.produto) : null, d.cor ? titulo(d.cor) : null].filter(Boolean).join(" · ");
   if (e.acao === "acesso") return "abriu a tela " + (d.tela === "gerente" ? "do gerente" : d.tela === "clientes" ? "de clientes" : d.tela === "painel executivo" ? "do painel executivo" : d.tela === "metas" ? "de metas" : "da pronta entrega");
   if (e.acao === "importou clientes") return fmt(d.clientes) + " clientes" + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
+  if (e.acao === "atualizou metas") return "metas de " + d.ano + " · " + fmt(d.representantes) + " representantes · total " + brl(d.total_depois) + (d.origem ? " · " + d.origem : "");
   if (e.acao === "importou vendas") return fmt(d.linhas) + " pedidos, emitidos de " + dataBR(d.de) + " a " + dataBR(d.ate) + (d.emissao ? " · relatório do ERP de " + d.emissao : "");
   if (e.acao === "viu vendas do cliente") return (d.cliente || "") + " · cód. " + d.cod;
   if (e.acao === "atualizou cliente") return (d.cliente || "") + " · cód. " + d.cod + (d.campos && d.campos.length ? " · alterou " + d.campos.join(", ") : "");
@@ -750,8 +887,24 @@ function resLinha(l) {
       el("div", { class: "qtd" }, el("b", null, fmt(l.qtd)), el("small", null, "pç")),
       el("button", { class: "bt" + (l.virou_pedido ? " ok" : " forte"), type: "button", onclick: marcar }, l.virou_pedido ? "Pedido ✓" : "Marcar pedido")));
 }
+function listaCons() {
+  const box = $("#consLista"); if (!box) return;
+  if (!consERP) { box.replaceChildren(el("div", { class: "vazio", style: "padding:14px" }, "Carregando os nomes do ERP…")); return; }
+  const termos = semAcento(consFiltro).trim().split(/\s+/).filter(Boolean);
+  const livres = consERP.filter((c) => !c.cadastrado && (!termos.length || termos.every((t) => semAcento(c.nome + " " + (c.apelido || "") + " " + c.codigo).indexOf(t) >= 0)));
+  if (!livres.length) { box.replaceChildren(el("div", { class: "vazio", style: "padding:14px" }, consERP.length ? "Nenhum nome do ERP sem cadastro para esta busca." : "Importe o relatório de clientes na aba Clientes para os nomes aparecerem aqui.")); return; }
+  const mostra = consTudo || termos.length ? livres : livres.slice(0, 12);
+  box.replaceChildren(...[...mostra.map((c) => el("button", { type: "button", onclick: async () => {
+      if (ocupado) return; ocupado = true; const nome = c.apelido || titulo(c.nome);
+      try { reps = await chamar("api_salvar_representante", { p_token: token, p_id: null, p_nome: nome, p_regiao: "", p_ativo: true, p_codigo: c.codigo, p_extras: "" }); toast(nome + " cadastrado com o código " + c.codigo + ". Copie o link dele."); await carregarConsultores(true); }
+      catch (e) { toast("Não consegui cadastrar agora."); }
+      ocupado = false; render(); } },
+    el("b", null, c.apelido || titulo(c.nome)), el("span", null, "cód. " + c.codigo + " · " + fmt(c.clientes) + (c.clientes === 1 ? " cliente" : " clientes") + (c.tem_meta ? " · tem meta" : "") + (c.apelido ? " · " + titulo(c.nome) : "")))),
+    !consTudo && !termos.length && livres.length > 12 ? el("button", { type: "button", onclick: () => { consTudo = true; listaCons(); } }, el("b", null, "Mostrar todos"), el("span", null, fmt(livres.length - 12) + " nomes a mais")) : null].filter(Boolean));
+}
 function renderReps() {
   $("#chips").replaceChildren();
+  if (!consERP) carregarConsultores().then(() => { if (aba === "reps") listaCons(); });
   const termos = semAcento(busca).trim().split(/\s+/).filter(Boolean);
   const lista = (reps || []).filter((r) => r.papel === "representante")
     .filter((r) => !termos.length || termos.every((t) => semAcento(r.nome + " " + (r.regiao || "")).indexOf(t) >= 0))
@@ -800,14 +953,19 @@ function renderReps() {
       acesso);
   }) : [el("div", { class: "vazio" }, "Nenhum representante cadastrado ainda.")];
   $("#corpo").replaceChildren(
+    el("div", { class: "secao" }, "Cadastrar representante: clique no nome", el("span", null, "nomes dos consultores do ERP que ainda não têm acesso ao site")),
+    (() => { const b = el("input", { type: "search", id: "consBusca", placeholder: "Buscar pelo nome ou código", autocomplete: "off", spellcheck: "false", value: consFiltro }); b.addEventListener("input", () => { consFiltro = b.value; listaCons(); }); return el("div", { class: "ferramentas", style: "padding-top:0" }, b); })(),
+    el("div", { class: "consLista", id: "consLista" }),
+    el("div", { class: "secao" }, "Ou cadastre digitando", el("span", null, "para quem não está no ERP")),
     el("div", { class: "cad" }, nome, regiao, codigo, el("button", { class: "bt forte", type: "button", onclick: cadastrar }, "Cadastrar")),
     el("div", { class: "nota" }, "O código é o do consultor no ERP: é ele que liga o representante aos clientes dele. Em \"Também vê os códigos\" você libera os clientes de outros representantes, separando os códigos por vírgula."),
     ...blocos);
+  listaCons();
 }
 
 if (token) carregar(); else telaEntrar();
-document.addEventListener("visibilitychange", () => { if (!document.hidden && token && montado && !ocupado && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps") carregar(); });
-setInterval(() => { if (!document.hidden && token && montado && !ocupado && !/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "") && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps") carregar(); }, 90000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && token && montado && !ocupado && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps" && !mt.aberto) carregar(); });
+setInterval(() => { if (!document.hidden && token && montado && !ocupado && !/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "") && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps" && !mt.aberto) carregar(); }, 90000);
 </script>
 </body>
 </html>

@@ -546,13 +546,13 @@ function telaReps(R){
   if (parados.length){ var v = parados.reduce(function(s, i){ return s + i.p; }, 0); c.append(el("p", {class:"note", text:parados.length + " representantes venderam " + brl(v) + " no mesmo período de " + A0 + " e não têm venda em " + A1 + ": " + parados.slice(0, 6).map(function(i){ return D.reps[i.k].n + " (" + brl(i.p) + ")"; }).join(", ") + (parados.length > 6 ? " e outros." : ".")})); }
   var MM = mesMeta(), m = card("Meta de " + MESL[MM-1].toLowerCase() + " por representante", (MM === CUT_M && PARCIAL ? "Vendido até " + corte() : "Vendido no mês") + " sobre a meta cheia do mês" + (temMeta(MM) ? "" : " · sem meta cadastrada neste mês") + (S.uf >= 0 || S.cat >= 0 ? " · com os filtros de estado e categoria aplicados" : ""));
   var rows = el("div", {class:"rows"}); rows.append(el("div", {class:"row h mrow"}, el("div", {text:"Representante"}), el("div", {text:"Andamento"}), el("div", {class:"val", text:"Vendido / meta"}), el("div", {class:"d", text:"%"})));
-  var tv = 0, tm = 0;
-  D.reps.map(function(r, i){ return {r:{n:r.n, m:metaDe(i, MM)}, v:R.setRep[i] || 0}; }).filter(function(x){ return x.r.m; }).sort(function(a, z){ return z.v/z.r.m - a.v/a.r.m; }).forEach(function(x){ var pc = x.v/x.r.m; tv += x.v; tm += x.r.m;
+  var tv = 0, tm = 0, zer = [];
+  D.reps.map(function(r, i){ return {r:{n:r.n, m:metaDe(i, MM)}, v:R.setRep[i] || 0}; }).filter(function(x){ return x.r.m; }).sort(function(a, z){ return z.v/z.r.m - a.v/a.r.m; }).forEach(function(x){ var pc = x.v/x.r.m; tv += x.v; tm += x.r.m; if (!(x.v > 0.5)){ zer.push(x.r.n + " (" + brl(x.r.m) + ")"); return; }
     var row = el("div", {class:"row mrow", tabindex:"0"}, el("div", {class:"n"}, el("div", {class:"t", text:x.r.n})), el("div", {class:"mbar"}, el("span", {class:pc >= 1 ? "ok" : "", style:"width:" + Math.min(100, pc*100).toFixed(1) + "%"})),
       el("div", {class:"val num", text:brl(x.v) + " / " + brl(x.r.m).replace("R$ ", "")}), el("div", {class:"d"}, el("span", {class:"pill " + (pc >= 1 ? "up" : pc >= 0.65 ? "warn" : pc > 0 ? "down" : ""), text:pct(pc)})));
     var ls = [{k:"Vendido", v:brlFull(x.v)}, {k:"Meta", v:brlFull(x.r.m)}, {k:"Falta", v:brlFull(Math.max(0, x.r.m - x.v))}];
     row.addEventListener("pointermove", function(ev){ showTip(ev, x.r.n, ls); }); row.addEventListener("pointerleave", hideTip); rows.append(row); });
-  m.append(rows, el("p", {class:"note", text:"Total com meta: " + brl(tv) + " de " + brl(tm) + " (" + pct(tv/tm, 1) + "). Pílula verde: meta batida. Amarela: de 65% a 99%. Vermelha: abaixo de 65%."}));
+  m.append(rows, el("p", {class:"note", text:"Total com meta: " + brl(tv) + " de " + brl(tm) + " (" + pct(tv/tm, 1) + "). Pílula verde: meta batida. Amarela: de 65% a 99%. Vermelha: abaixo de 65%." + (zer.length ? " Com meta e sem venda no mês: " + zer.join(", ") + "." : "")}));
   return [el("div", {class:"grid g2e"}, c, m)]; }
 function telaRegioes(R){
   var arr = lista(R.uf), tot = arr.reduce(function(s, i){ return s + i.c; }, 0);
@@ -684,13 +684,15 @@ function telaMetas(){
   var g = card("Meta × vendas por mês em " + A1, "Vendas pela data de emissão. Clique em um mês para ver as metas dele.", el("div", {class:"legend"}, el("span", null, el("i", {style:"background:var(--y26)"}), "Vendas"), el("span", null, el("i", {style:"background:var(--y25)"}), "Meta")));
   g.append(grafico({a:vMes, b:mMes, na:CUT_M, nb:12, ca:"--y26", cb:"--y25", la:"Vendas", lb:"Meta", fimA:"Vendas", fimB:"Meta", tracoA:PARCIAL, dif:"valor", faixa:[S.a, S.b], clique:true, sufixo:" de " + A1, aria:"Meta e vendas por mês em " + A1}));
   var ls = L.slice().sort(function(a, z){ return z.m - a.m || z.ma - a.ma; });
-  var linhas = ls.map(function(x){ return el("tr", {class:S.rep === x.i ? "on" : null}, el("td", null, lk(x.n, function(){ pickRep(x.i); })), el("td", {class:"r num", text:x.m ? brlFull(x.m) : "—"}), el("td", {class:"r num", text:brlFull(x.v)}), el("td", {class:"r"}, pill(x.v, x.m)),
+  var zer2 = ls.filter(function(x){ return x.m > 0 && !(x.v > 0.5); }).map(function(x){ return x.n + " (" + brl(x.m) + ")"; });
+  var linhas = ls.filter(function(x){ return x.v > 0.5; }).map(function(x){ return el("tr", {class:S.rep === x.i ? "on" : null}, el("td", null, lk(x.n, function(){ pickRep(x.i); })), el("td", {class:"r num", text:x.m ? brlFull(x.m) : "—"}), el("td", {class:"r num", text:brlFull(x.v)}), el("td", {class:"r"}, pill(x.v, x.m)),
       el("td", {class:"r num", text:x.m > x.v ? brlFull(x.m - x.v) : "—"}), el("td", {class:"r num", text:brlFull(x.ma)}), el("td", {class:"r num", text:brlFull(x.va)}), el("td", {class:"r"}, pill(x.va, x.ma))); });
   var semMeta = 0; D.reps.forEach(function(r, i){ if (!METAS.reps[r.r] && V[i]) semMeta += V[i][M-1] || 0; });
   var tc = card("Meta e vendido por representante em " + nomeM, (aberto ? "Vendido até " + corte() + ". " : "") + "Acumulado = janeiro a " + nomeM + ". Clique no nome para filtrar o painel pelo representante.");
   tc.append(tabela([{t:"Representante"}, {t:"Meta do mês", r:1}, {t:"Vendido", r:1}, {t:"%", r:1}, {t:"Falta", r:1}, {t:"Meta acumulada", r:1}, {t:"Vendido acumulado", r:1}, {t:"%", r:1}], linhas, 100, "metas",
     el("tr", null, el("td", {text:"Total com meta"}), el("td", {class:"r num", text:brlFull(tm)}), el("td", {class:"r num", text:brlFull(ls.reduce(function(a, x){ return a + x.v; }, 0))}), el("td", {class:"r"}, pill(ls.reduce(function(a, x){ return a + x.v; }, 0), tm)),
       el("td", {class:"r num", text:""}), el("td", {class:"r num", text:brlFull(tma)}), el("td", {class:"r num", text:brlFull(ls.reduce(function(a, x){ return a + x.va; }, 0))}), el("td", {class:"r"}, pill(ls.reduce(function(a, x){ return a + x.va; }, 0), tma)))));
+  if (zer2.length) tc.append(el("p", {class:"note", text:"Com meta e sem venda em " + nomeM + " (não aparecem na tabela, mas entram no total da meta): " + zer2.join(", ") + "."}));
   if (semMeta > 0.5) tc.append(el("p", {class:"note", text:"Além disso, " + brl(semMeta) + " foram vendidos em " + nomeM + " por consultores sem meta cadastrada neste ano."}));
   var mc = card("Metas de " + A1 + " mês a mês", "Valores em R$ mil, como estão no ERP. A coluna destacada é o mês selecionado.");
   var cab = [{t:"Representante"}].concat(MES.map(function(m){ return {t:m, r:1}; })).concat([{t:"Ano", r:1}]);
