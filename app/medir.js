@@ -84,10 +84,15 @@
     if (c && c.cidade && Date.now() - c.em < 2 * 36e5) { aplicar(c); return; }       // posição de até 2 h atrás: reaproveita
     // sem aviso próprio (dono, 15/10/2026: os representantes autorizaram por escrito). Só aparece a pergunta do próprio
     // navegador, que nenhum site consegue pular; depois de "Permitir" ela não volta (no iPhone: Ajustes > Safari > Localização).
+    // enquanto o aparelho não estiver em "Permitir" de vez, pergunta no máximo 1 vez por dia (para não incomodar)
+    var umaVezAoDia = function () {
+      var ult = lerLS("pollo-local-pedido"); if (ult && Date.now() - ult < 20 * 36e5) return;
+      gravarLS("pollo-local-pedido", Date.now()); pegarPosicao();
+    };
     if (navigator.permissions && navigator.permissions.query) {
       navigator.permissions.query({ name: "geolocation" }).then(function (st) {
-        if (st.state === "denied") negado(); else pegarPosicao();
-      }).catch(pegarPosicao);
-    } else pegarPosicao();
+        if (st.state === "granted") pegarPosicao(); else if (st.state === "denied") negado(); else umaVezAoDia();
+      }).catch(umaVezAoDia);
+    } else umaVezAoDia();
   }
 })();
