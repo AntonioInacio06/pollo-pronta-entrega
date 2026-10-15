@@ -7,7 +7,7 @@
    - o representante é identificado só pelo nome e região, depois de entrar (window.polloMedirQuem). */
 (function () {
   "use strict";
-  if (!/\.github\.io$/.test(location.hostname)) { window.polloMedirQuem = function () {}; return; }
+  if (!/\.github\.io$/.test(location.hostname)) { window.polloMedirQuem = window.polloMedirEvento = function () {}; return; }
   var app = (document.currentScript && document.currentScript.dataset.app) || "site";
 
   // carregador oficial do PostHog (snippet padrão, reduzido): cria a fila window.posthog até o script chegar
@@ -34,6 +34,9 @@
     }
   });
   posthog.register({ app: app, instalado: navigator.standalone === true || matchMedia("(display-mode: standalone)").matches });
+
+  // evento de negócio (ex.: reserva). Nunca mandar preço nem dado de cliente.
+  window.polloMedirEvento = function (nome, props) { try { posthog.capture(nome, props || {}); } catch (e) {} };
 
   // a página do representante chama isto depois do login: polloMedirQuem(nome, regiao)
   window.polloMedirQuem = function (nome, regiao) {

@@ -351,7 +351,8 @@ function linha(i) {
       const r = await chamar("api_reservar", { p_token: token, p_item: i.id, p_qtd: novo });
       if (r && r.erro === "indisponivel") toast("Outro representante reservou antes. Sobraram " + fmt(r.livre) + ".");
       else if (r && r.erro) toast("Não consegui reservar agora.");
-      else { dados = r; toast(novo ? "Reservado " + fmt(novo) + " · " + titulo(i.produto) : "Reserva cancelada"); }
+      else { dados = r; toast(novo ? "Reservado " + fmt(novo) + " · " + titulo(i.produto) : "Reserva cancelada");
+        if (window.polloMedirEvento) window.polloMedirEvento("reserva", { produto: i.produto, cor: i.cor, categoria: i.categoria || "Mesas e outros", qtd_antes: i.minha_reserva, qtd_depois: novo, pecas: novo - i.minha_reserva }); }
     } catch (e) { toast("Sem conexão. Tente de novo."); }
     ocupado = false; renderLista();
   };
