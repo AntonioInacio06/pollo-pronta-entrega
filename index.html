@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
+<script defer src="app/medir.js" data-app="rep"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1A1F1E">
@@ -277,6 +278,7 @@ function montarTela() {
 }
 function atualizarTopo() {
   const p = dados.publicacao, r = dados.representante;
+  if (window.polloMedirQuem) window.polloMedirQuem(r.nome, r.regiao);   /* PostHog: quem acessou (app/medir.js) */
   $("#euSou").replaceChildren(r.nome + (r.regiao ? " · " + r.regiao : ""), el("br"),
     el("button", { type: "button", class: "lkTopo", onclick: () => telaNovaSenha("", false) }, "Trocar senha"), " · ", el("button", { type: "button", class: "lkTopo", onclick: sair }, "Sair"));
   const dt = new Date(p.em), agora = new Date();
