@@ -50,7 +50,7 @@
   /* CIDADE PELO APARELHO (15/10/2026): a cidade pelo IP erra no iPhone (Relay Privado do iCloud e rede da operadora
      punham Campinas em Cuiabá e Rio em Itabuna). Com a permissão do representante, o aparelho dá a posição, a página
      acha o município mais próximo na tabela do IBGE (app/municipios.json, no próprio site) e manda SÓ cidade e UF.
-     A coordenada nunca sai do aparelho. Recusou -> "negado" e só pergunta de novo em 7 dias. */
+     A coordenada nunca sai do aparelho. Recusou no navegador -> "negado". */
   var localJaPedido = false;
   function lerLS(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
   function gravarLS(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -75,33 +75,19 @@
         loc.precisao_km = Math.round((pos.coords.accuracy || 0) / 1000); loc.em = Date.now();
         gravarLS("pollo-local", loc); aplicar(loc);
       }).catch(function () {});
-    }, function (err) { if (err && err.code === 1) { gravarLS("pollo-local-recusa", Date.now()); negado(); } },
+    }, function (err) { if (err && err.code === 1) negado(); },
     { enableHighAccuracy: false, timeout: 20000, maximumAge: 15 * 60000 });
-  }
-  function barraPedido() {
-    var rec = lerLS("pollo-local-recusa"); if (rec && Date.now() - rec < 7 * 864e5) return;
-    var b = document.createElement("div"); b.setAttribute("role", "region"); b.setAttribute("aria-label", "Permitir localização");
-    b.style.cssText = "position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:9999;display:flex;align-items:center;gap:10px;" +
-      "padding:10px 10px 10px 14px;border-radius:12px;background:#1C2220;color:#fff;font:14px/1.35 system-ui,-apple-system,sans-serif;" +
-      "box-shadow:0 6px 24px rgba(0,0,0,.28);max-width:520px;margin:0 auto";
-    var t = document.createElement("div"); t.style.cssText = "flex:1;min-width:0";
-    t.innerHTML = "<b>Permitir localização?</b><br>A fábrica vê só a <b>cidade</b> de onde você acessa. O ponto exato não sai do seu celular.";
-    var bs = "border:0;border-radius:8px;font:600 14px system-ui,-apple-system,sans-serif;touch-action:manipulation;cursor:pointer;padding:10px 12px;";
-    var ok = document.createElement("button"); ok.type = "button"; ok.textContent = "Permitir"; ok.style.cssText = bs + "background:#D38D5C;color:#1B120D";
-    var nao = document.createElement("button"); nao.type = "button"; nao.textContent = "Agora não"; nao.style.cssText = bs + "background:transparent;color:#fff";
-    ok.onclick = function () { b.remove(); pegarPosicao(); };
-    nao.onclick = function () { b.remove(); gravarLS("pollo-local-recusa", Date.now()); posthog.register({ local_fonte: "recusou_aviso" }); };
-    b.appendChild(t); b.appendChild(ok); b.appendChild(nao); document.body.appendChild(b);
   }
   function localizar() {
     if (localJaPedido || !navigator.geolocation) return; localJaPedido = true;
     var c = lerLS("pollo-local");
     if (c && c.cidade && Date.now() - c.em < 2 * 36e5) { aplicar(c); return; }       // posição de até 2 h atrás: reaproveita
-    var perguntar = function () { setTimeout(barraPedido, 1500); };
+    // sem aviso próprio (dono, 15/10/2026: os representantes autorizaram por escrito). Só aparece a pergunta do próprio
+    // navegador, que nenhum site consegue pular; depois de "Permitir" ela não volta (no iPhone: Ajustes > Safari > Localização).
     if (navigator.permissions && navigator.permissions.query) {
       navigator.permissions.query({ name: "geolocation" }).then(function (st) {
-        if (st.state === "granted") pegarPosicao(); else if (st.state === "denied") negado(); else perguntar();
-      }).catch(perguntar);
-    } else perguntar();
+        if (st.state === "denied") negado(); else pegarPosicao();
+      }).catch(pegarPosicao);
+    } else pegarPosicao();
   }
 })();
