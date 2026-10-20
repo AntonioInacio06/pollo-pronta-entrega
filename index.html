@@ -123,6 +123,9 @@ button.mini:active{transform:scale(.96)}
 .val{font:600 17px var(--f-mono)}
 .val.reserva{color:var(--accent)}
 .preco{font-size:11.5px;color:var(--ink-3);text-align:right;line-height:1.25}
+.precoItem{font:600 14px var(--f-mono);color:var(--ink);margin-top:5px}
+.precoItem small{font:400 11px var(--f-body);color:var(--ink-3);margin-left:4px}
+.precoItem.tab{font:500 12px var(--f-body);color:var(--ink-3)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 78px);z-index:30;
   background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:999px;font-size:13.5px;max-width:92vw;text-align:center}
 .entrar{max-width:420px;margin:48px auto;padding:0 18px;display:grid;gap:12px}
@@ -151,6 +154,11 @@ const el = (t, a, ...k) => { const e = document.createElement(t);
   for (const c of k.flat()) { if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
   return e; };
 const fmt = (n) => (Number(n) || 0).toLocaleString("pt-BR");
+/* preço (Inácio, 20/10/2026): só quando o PCP publica com preço; o banco só manda o preço dos fora de linha */
+const brl = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const comPreco = () => !!(dados && dados.publicacao && dados.publicacao.mostra_preco);
+const unPreco = (i) => (/par/i.test(i.observacao || "") ? "o par" : "un.");
+const textoPreco = (i) => (!comPreco() ? "preço sob consulta" : i.em_linha ? "consultar tabela" : i.preco != null ? brl(i.preco) + " " + unPreco(i) : "preço sob consulta");
 const titulo = (s) => String(s || "").toLowerCase()
   .replace(/(^|[\s\/(\-])([a-z\u00e0-\u00fa])/g, (m, a, b) => a + b.toUpperCase())
   .replace(/\bLc\b/g, "LC").replace(/\bTv\b/g, "TV");
@@ -271,7 +279,7 @@ function montarTela() {
     el("div", { class: "rodape" },
       el("div", { class: "bloco" }, el("span", { class: "rot" }, "Disponível agora"), el("span", { class: "val", id: "totDisp" }, "—")),
       el("div", { class: "bloco" }, el("span", { class: "rot" }, "Reservei hoje"), el("span", { class: "val reserva", id: "totMeu" }, "—")),
-      el("div", { class: "preco" }, "Preço sob consulta", el("br"), "com a fábrica"))].filter(Boolean));
+      el("div", { class: "preco", id: "rodPreco" }))].filter(Boolean));
   atualizarTopo(); renderLista();
   const medir = () => document.documentElement.style.setProperty("--topo", $("#topo").offsetHeight + "px");
   requestAnimationFrame(medir); window.addEventListener("resize", medir);
@@ -288,6 +296,7 @@ function atualizarTopo() {
   const texto = hoje ? "Estoque atualizado hoje às " + hhmm
     : ontem ? "Estoque atualizado ontem às " + hhmm
     : "Estoque atualizado em " + dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " às " + hhmm;
+  $("#rodPreco").replaceChildren(...(comPreco() ? ["Fora de linha: preço na lista", el("br"), "Em linha: consultar tabela"] : ["Preço sob consulta", el("br"), "com a fábrica"]));
   const faixa = $("#atualizado");
   faixa.className = "atualizado" + (hoje ? "" : " velho");
   faixa.replaceChildren(el("span", { class: "ponto" }), texto,
@@ -301,7 +310,7 @@ function verFoto(i, src) {
     el("div", { class: "visorTopo" }, el("button", { type: "button", "aria-label": "Fechar", onclick: fechar }, "\u00d7")),
     el("img", { src: src, alt: titulo(i.produto), decoding: "async" }),
     el("div", { class: "visorPe" }, el("b", null, titulo(i.produto)),
-      el("span", null, titulo(i.cor) + " \u00b7 " + fmt(i.disponivel) + " livres \u00b7 pre\u00e7o sob consulta")));
+      el("span", null, titulo(i.cor) + " \u00b7 " + fmt(i.disponivel) + " livres \u00b7 " + textoPreco(i))));
   document.addEventListener("keydown", tecla);
   document.body.append(visor);
 }
@@ -367,7 +376,9 @@ function linha(i) {
       el("div", { class: "detalhe" }, titulo(i.cor),
         el("span", { class: "etq " + (i.em_linha ? "linha" : "fora") }, i.em_linha ? "Em linha" : "Fora de linha"),
         i.sem_luminaria ? el("span", { class: "etq lum" }, "Sem luminária") : null,
-        i.observacao && !i.sem_luminaria ? el("span", { class: "etq lum" }, i.observacao) : null)),
+        i.observacao && !i.sem_luminaria ? el("span", { class: "etq lum" }, i.observacao) : null),
+      !comPreco() ? null : !i.em_linha && i.preco != null ? el("div", { class: "precoItem" }, brl(i.preco), el("small", null, unPreco(i)))
+        : el("div", { class: "precoItem tab" }, i.em_linha ? "Consultar tabela" : "Preço sob consulta")),
     el("div", { class: "qtd" + (i.disponivel ? "" : " zero") }, el("b", null, fmt(i.disponivel)), el("small", null, "livres")),
     el("div", { class: "passo" },
       el("button", { type: "button", "aria-label": "Tirar uma", disabled: !i.minha_reserva, onclick: () => mudar(-1) }, "−"),

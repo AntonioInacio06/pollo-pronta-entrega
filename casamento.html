@@ -275,7 +275,7 @@ td.ped{white-space:nowrap} td.ped .sub{display:block;font-size:11.5px;color:var(
       <label class="regra" for="pubFora"><input type="checkbox" id="pubFora" checked><span>Mostrar produtos fora de linha</span></label>
       <input id="pubObs" placeholder="Recado do dia (opcional)" style="width:100%;margin-top:8px;padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--surface)">
       <button type="button" class="baixar" id="publicar" style="margin-top:10px">Publicar a pronta entrega de hoje</button>
-      <p class="ajuda" id="pubMsg">Vai só produto e quantidade, sem preço. Produto sem luminária vai marcado.</p>
+      <p class="ajuda" id="pubMsg">Vai produto e quantidade. Com “Entregar com preço” (item 4) marcado, os fora de linha vão com preço e os em linha com “Consultar tabela”. Produto sem luminária vai marcado.</p>
       <p class="ajuda" id="ultPub" hidden></p>
     </section>
 
@@ -1616,15 +1616,17 @@ try { tokenPub = new URLSearchParams(location.hash.slice(1)).get("g") || localSt
 if (tokenPub && location.hash.includes("g=")) { try { localStorage.setItem("pe-pcp", tokenPub); } catch (e) {} history.replaceState(null, "", location.pathname); }
 if (tokenPub && !(window.claude && window.claude.use)) $("blocoPub").hidden = false;
 const SEM_LUM = /LUMINARIA|LUMINÁRIA/i;
+/* preço para representante/gerente (Inácio, 20/10/2026): só com "Entregar com preço" marcado e só fora de linha; em linha nunca sai daqui */
+const precoPub = (linha, p) => (op.comPreco && !linha && p && p.v > 0 ? { preco: Math.round(p.v * 100) / 100, preco_tabela: p.tab } : {});
 function itensParaPublicar(){
   const out = [];
   for (const m of res.montados) {
     const faltas = Object.keys(m.relevado || {}).map((b) => nomeVol(b));
     const lum = faltas.some((n) => SEM_LUM.test(n)); const ferr = faltas.some((n) => /FERRAGEM/i.test(n));
     out.push({ codigo: m.prod, produto: m.nome, cor: m.cornome, categoria: CAT[m.cat], qtd: m.qtd, em_linha: !!m.linha,
-      sem_luminaria: lum, observacao: lum && ferr ? "Sem luminária e sem ferragem" : lum ? "" : ferr ? "Falta ferragem" : "" });
+      sem_luminaria: lum, observacao: lum && ferr ? "Sem luminária e sem ferragem" : lum ? "" : ferr ? "Falta ferragem" : "", ...precoPub(!!m.linha, precoProd(m.prod)) });
   }
-  for (const e of res.estofados) out.push({ codigo: e.prod || "", produto: e.nome, cor: e.cornome, categoria: "Estofados", qtd: e.qtd, em_linha: !!e.linha, sem_luminaria: false, observacao: e.par ? "Vendido em par" : "" });
+  for (const e of res.estofados) out.push({ codigo: e.prod || "", produto: e.nome, cor: e.cornome, categoria: "Estofados", qtd: e.qtd, em_linha: !!e.linha, sem_luminaria: false, observacao: e.par ? "Vendido em par" : "", ...precoPub(!!e.linha, precoEstof(e)) });
   return out;
 }
 $("publicar").onclick = async () => {
@@ -1634,13 +1636,17 @@ $("publicar").onclick = async () => {
   const visiveis = itens.filter((i) => (i.em_linha && emLinha) || (!i.em_linha && fora));
   if (!visiveis.length) { $("pubMsg").textContent = "Do jeito que está marcado, os representantes não veriam nada."; return; }
   const pecas = visiveis.reduce((a, i) => a + i.qtd, 0);
-  if (!confirm("Publicar " + fmt(visiveis.length) + " produtos (" + fmt(pecas) + " peças) para os representantes?\nIsso substitui a publicação anterior e zera as reservas do dia que não viraram pedido.")) return;
+  const foraP = visiveis.filter((i) => !i.em_linha), comP = foraP.filter((i) => i.preco).length;
+  const txtPreco = op.comPreco ? "\n\nCOM PREÇO: " + fmt(comP) + " de " + fmt(foraP.length) + " produtos fora de linha vão com preço" + (comP < foraP.length ? " (os outros não têm preço em nenhuma tabela)" : "") + ". Em linha aparece “Consultar tabela”."
+    : "\n\nSEM PREÇO (para mandar com preço dos fora de linha, marque “Entregar com preço”).";
+  if (op.comPreco && PRECOS.vazio) { $("pubMsg").textContent = "A tabela de preços ainda não carregou. Espere alguns segundos ou desmarque “Entregar com preço”."; return; }
+  if (!confirm("Publicar " + fmt(visiveis.length) + " produtos (" + fmt(pecas) + " peças) para os representantes?\nIsso substitui a publicação anterior e zera as reservas do dia que não viraram pedido." + txtPreco)) return;
   $("publicar").disabled = true; $("pubMsg").textContent = "Publicando…";
   try {
     const r = await fetch(PUB.url + "/rest/v1/rpc/api_publicar", { method: "POST",
       headers: { "Content-Type": "application/json", apikey: PUB.key, Authorization: "Bearer " + PUB.key },
       body: JSON.stringify({ p_token: tokenPub, p_dados: { por: "PCP", estoque: (fonte && fonte.nome) || "", pedidos: (fontePed && fontePed.nome) || "",
-        em_linha: emLinha, fora_de_linha: fora, observacao: $("pubObs").value.trim() || null, itens } }) });
+        em_linha: emLinha, fora_de_linha: fora, com_preco: !!op.comPreco, observacao: $("pubObs").value.trim() || null, itens } }) });
     const d = await r.json();
     if (d && d.erro) $("pubMsg").textContent = d.erro === "acesso" ? "Seu código de gerente não vale mais." : "Não consegui publicar (" + d.erro + ").";
     else { $("pubMsg").textContent = "Publicado: " + fmt(d.itens) + " produtos no ar para os representantes. Guardando os arquivos…";

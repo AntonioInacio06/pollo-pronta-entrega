@@ -93,6 +93,9 @@ main{max-width:1100px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom,
 .etq.linha{background:var(--ok-bg);color:var(--ok)}
 .etq.fora{background:var(--surface-2);color:var(--ink-3)}
 .etq.lum{background:var(--warn-bg);color:var(--warn)}
+.precoItem{font:600 14px var(--f-mono);color:var(--ink);margin-top:5px}
+.precoItem small{font:400 11px var(--f-body);color:var(--ink-3);margin-left:4px}
+.precoItem.tab{font:500 12px var(--f-body);color:var(--ink-3)}
 .direita{display:flex;align-items:center;gap:10px}
 .qtd{text-align:right;min-width:44px}
 .qtd b{display:block;font:600 20px/1 var(--f-mono)}
@@ -536,11 +539,11 @@ function renderPE() {
 function renderPELista() {
   const d = pe.d, itens = (d && d.itens) || [], temFoto = (i) => !!(pe.novas[i.produto] || pe.fotos[i.produto]);
   const prodsSem = new Set(itens.filter((i) => !temFoto(i)).map((i) => i.produto)).size, prodsNovas = new Set(itens.filter((i) => pe.novas[i.produto]).map((i) => i.produto)).size;
-  $("#peChips").replaceChildren(...[["todos", "Tudo", itens.length], ["sem", "Sem foto", itens.filter((i) => !temFoto(i)).length], ["novas", "Foto enviada pela gerência", itens.filter((i) => pe.novas[i.produto]).length]]
+  $("#peChips").replaceChildren(...[["todos", "Tudo", itens.length], ["linha", "Em linha", itens.filter((i) => i.em_linha).length], ["fora", "Fora de linha", itens.filter((i) => !i.em_linha).length], ["sem", "Sem foto", itens.filter((i) => !temFoto(i)).length], ["novas", "Foto enviada pela gerência", itens.filter((i) => pe.novas[i.produto]).length]]
     .map(([v, t, n]) => el("button", { class: "chip", type: "button", "aria-pressed": String(pe.filtro === v), onclick: () => { pe.filtro = v; renderPELista(); } }, t, el("b", null, fmt(n)))));
   const termos = semAcento(pe.busca).trim().split(/\s+/).filter(Boolean);
-  const lst = itens.filter((i) => (pe.filtro !== "sem" || !temFoto(i)) && (pe.filtro !== "novas" || pe.novas[i.produto]) && (!termos.length || termos.every((t) => semAcento(i.produto + " " + i.cor + " " + (i.categoria || "")).indexOf(t) >= 0)));
-  const p = d.publicacao || {}, blocos = [el("div", { class: "secao" }, "Pronta entrega publicada", el("span", null, (p.em ? "atualizada em " + quandoBR(p.em) + (p.por ? " por " + p.por : "") + " · " : "") + fmt(itens.length) + " itens · " + fmt(prodsSem) + " produtos sem foto · " + fmt(prodsNovas) + " com foto enviada"))];
+  const lst = itens.filter((i) => (pe.filtro !== "linha" || i.em_linha) && (pe.filtro !== "fora" || !i.em_linha) && (pe.filtro !== "sem" || !temFoto(i)) && (pe.filtro !== "novas" || pe.novas[i.produto]) && (!termos.length || termos.every((t) => semAcento(i.produto + " " + i.cor + " " + (i.categoria || "")).indexOf(t) >= 0)));
+  const p = d.publicacao || {}, blocos = [el("div", { class: "secao" }, "Pronta entrega publicada", el("span", null, (p.em ? "atualizada em " + quandoBR(p.em) + (p.por ? " por " + p.por : "") + " · " : "") + fmt(itens.length) + " itens · " + fmt(prodsSem) + " produtos sem foto · " + fmt(prodsNovas) + " com foto enviada" + (p.mostra_preco ? " · com preço dos fora de linha" : " · sem preço")))];
   if (!lst.length) blocos.push(el("div", { class: "vazio" }, "Nada nesta seleção."));
   const ORD = ["Home", "Bancada", "Painel", "Módulo", "Estofados", "Mesas e outros"], grupos = {};
   for (const i of lst) (grupos[i.categoria || "Mesas e outros"] = grupos[i.categoria || "Mesas e outros"] || []).push(i);
@@ -555,7 +558,9 @@ function renderPELista() {
           : el("div", { class: "mini vazia" }, "sem foto"),
         el("div", null, el("div", { class: "resNome" }, nome),
           el("div", { class: "resSub" }, titulo(i.cor), el("span", { class: "etq " + (i.em_linha ? "linha" : "fora") }, i.em_linha ? "Em linha" : "Fora de linha"), i.sem_luminaria ? el("span", { class: "etq lum" }, "Sem luminária") : null,
-            el("span", { class: "etq " + (nova ? "neutra" : src ? "fora" : "crit") }, nova ? "Foto enviada pela gerência" : src ? "Foto do catálogo" : "Sem foto"))),
+            el("span", { class: "etq " + (nova ? "neutra" : src ? "fora" : "crit") }, nova ? "Foto enviada pela gerência" : src ? "Foto do catálogo" : "Sem foto")),
+          !p.mostra_preco ? null : !i.em_linha && i.preco != null ? el("div", { class: "precoItem" }, brl(i.preco), el("small", null, /par/i.test(i.observacao || "") ? "o par" : "un."))
+            : el("div", { class: "precoItem tab" }, i.em_linha ? "Consultar tabela" : "Preço sob consulta")),
         el("div", { class: "peNums" }, el("div", null, el("b", null, fmt(i.qtd)), el("small", null, "estoque")), el("div", null, el("b", null, fmt(i.reservado)), el("small", null, "reserv.")), el("div", { class: "livre" }, el("b", null, fmt(i.disponivel)), el("small", null, "livres"))),
         el("div", { class: "peAcoes" }, el("button", { class: "bt" + (nova || src ? "" : " forte"), type: "button", onclick: escolher }, nova || src ? "Trocar foto" : "Anexar foto"),
           nova ? el("button", { class: "bt", type: "button", onclick: () => tirarFoto(i.produto) }, src ? "Voltar à foto do catálogo" : "Tirar a foto enviada") : null,
