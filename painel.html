@@ -58,6 +58,10 @@ h1{margin:6px 0 0;font:700 clamp(24px,3.4vw,32px)/1.05 var(--f-disp);letter-spac
 .sel label{font-size:12px;color:var(--ink-3);white-space:nowrap}
 .sel select{border:0;background:transparent;padding:8px 4px;max-width:160px;min-width:0;cursor:pointer}
 .limpar{border:0;background:none;color:var(--y26);font-weight:600;cursor:pointer;padding:8px 6px}
+.hist{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2);cursor:pointer;padding:6px 2px}
+.hist input{margin:0;width:15px;height:15px;accent-color:var(--y26);cursor:pointer}
+.hist small{font-size:12px;color:var(--ink-3)}
+#histMsg{font-size:12.5px;color:var(--ink-2)} #histMsg.erro{color:var(--bad)} #histMsg button{border:0;background:none;color:var(--y26);font-weight:600;cursor:pointer;padding:4px 6px}
 .tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
 .tabs button{flex:none;border:0;background:none;padding:10px 14px;border-bottom:3px solid transparent;font:600 15px var(--f-disp);color:var(--ink-3);cursor:pointer;white-space:nowrap}
@@ -217,7 +221,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13.5px}
   .wrap{padding-inline:16px} .card{padding:16px} .asof{text-align:left}
   .top{position:static} .busca{max-width:none;flex-basis:100%} #det .pan{padding-inline:16px}
   .row{grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"n val d" "b b b"} .row .n{grid-area:n} .row .bars,.row .mbar{grid-area:b} .row .val{grid-area:val} .row .d{grid-area:d}
-  .row.h{display:none} .sel{flex:1 1 150px} .sel select{max-width:none;flex:1} #periodo{width:100%} #periodo button{flex:1;padding-inline:6px}
+  .row.h{display:none} .hist,#histMsg,#fAnoBox{flex-basis:100%} .sel{flex:1 1 150px} .sel select{max-width:none;flex:1} #periodo{width:100%} #periodo button{flex:1;padding-inline:6px}
   .meta-v{font-size:34px}
 }
 @media (prefers-reduced-motion:no-preference){ .bars span,.prog>span,.mbar span{transition:width .35s ease} }
@@ -233,12 +237,15 @@ table.tb{width:100%;border-collapse:collapse;font-size:13.5px}
       <div class="seg" id="modo" role="group" aria-label="Visão"><button type="button" data-m="ven">Vendas</button><button type="button" data-m="fat">Faturamento</button></div>
       <div class="seg" id="periodo" role="group" aria-label="Período">
       </div>
+      <div class="sel" id="fAnoBox" hidden><label for="fAno">Ano</label><select id="fAno"></select></div>
       <div class="sel"><label for="fDe">De</label><select id="fDe"></select><label for="fAte">até</label><select id="fAte"></select></div>
       <div class="sel"><label for="fRep">Representante</label><select id="fRep"></select></div>
       <div class="sel"><label for="fUf">Estado</label><select id="fUf"></select></div>
       <div class="sel"><label for="fCat">Categoria</label><select id="fCat"></select></div>
       <div class="sel busca"><label for="q">Buscar</label><input id="q" type="search" placeholder="cliente ou produto" autocomplete="off" spellcheck="false"><div id="sug" hidden></div></div>
       <button type="button" class="limpar" id="limpar" hidden>Limpar filtros</button>
+      <label class="hist" id="histBox" hidden><input type="checkbox" id="fHist"><span id="histTxt">Incluir anos antes de 2025</span><small>· carrega mais devagar</small></label>
+      <span id="histMsg" aria-live="polite"></span>
     </div>
     <div class="tabs" id="tabs" role="tablist">
       <button type="button" role="tab" data-t="geral">Visão geral</button><button type="button" role="tab" data-t="reps">Representantes</button><button type="button" role="tab" data-t="regioes">Regiões</button><button type="button" role="tab" data-t="produtos">Produtos</button><button type="button" role="tab" data-t="clientes">Clientes</button><button type="button" role="tab" data-t="metas">Metas</button><button type="button" role="tab" data-t="carteira">Carteira e cargas</button><button type="button" role="tab" data-t="atividade">Atividade de clientes</button>
@@ -279,22 +286,28 @@ var STAT = {"DOCUMENTO FATURADO":"Faturado","DOCUMENTO FATURADO PARCIAL":"Fatura
 function montarD(P){
   var N = {reps:[], ufs:[], clis:[], cats:[], prods:[], sts:[], cores:[]};
   function ind(k){ var m = new Map(); return function(chave, novo){ var i = m.get(chave); if (i === undefined){ i = N[k].length; N[k].push(novo); m.set(chave, i); } return i; }; }
-  var iRep = ind("reps"), iUf = ind("ufs"), iCli = ind("clis"), iCat = ind("cats"), iProd = ind("prods"), iSt = ind("sts"), iCor = ind("cores"), o = [], it = [], maior = 0;
-  (P.blocos || []).forEach(function(b, bi){ var dn = +b.em; if (dn > maior) maior = dn; var cons = b.co || "", m = REPMAP[cons];
+  var iRep = ind("reps"), iUf = ind("ufs"), iCli = ind("clis"), iCat = ind("cats"), iProd = ind("prods"), iSt = ind("sts"), iCor = ind("cores"), o = [], it = [], maior = 0, menor = 0;
+  (P.blocos || []).forEach(function(b, bi){ var dn = +b.em; if (dn > maior) maior = dn; if (!menor || dn < menor) menor = dn; var cons = b.co || "", m = REPMAP[cons];
     var r = iRep(cons, m ? {n:m[0], m:m[1], a:m[2], r:cons} : {n:repCurto(cons), m:null, a:0, r:cons}), st = STAT[b.st] || b.st || "?", oi = o.length;
     o.push([dn, r, iUf(b.uf || "??", b.uf || "??"), iCli(String(b.cc), [String(b.cc), cliDe(b.cl || ""), tit(b.ci || "")]), b.vl || 0, iSt(st, st), +b.p, +(b.de || 0), +(b.pv || 0), +(b.cg || 0), bi]);
     (b.it || []).forEach(function(x){ it.push([oi, iCat(x[10], x[10]), iProd(x[8], x[8]), x[3], x[7], iCor(x[9], x[9])]); }); });
   Object.keys(METAS.reps).forEach(function(cons){ var m = REPMAP[cons]; iRep(cons, m ? {n:m[0], m:m[1], a:m[2], r:cons} : {n:repCurto(cons), m:null, a:0, r:cons}); });
   var hoje = new Date(), ate = maior ? Math.floor(maior/10000) + "-" + ("0" + Math.floor(maior/100) % 100).slice(-2) + "-" + ("0" + maior % 100).slice(-2)
     : hoje.getFullYear() + "-" + ("0" + (hoje.getMonth() + 1)).slice(-2) + "-" + ("0" + hoje.getDate()).slice(-2);
-  return Object.assign(N, {o:o, i:it, ate:ate, rel:P.rel || "", em:P.em || ""}); }
+  return Object.assign(N, {o:o, i:it, ate:ate, ini:menor, rel:P.rel || "", em:P.em || ""}); }
 var D = montarD(PED);
 var MES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 var ANO, ANT, CUT_M, CUT_D, A1, A0, PARCIAL, PRE, IDX = null;
+/* HOJE_*: último pedido da base (carteira e atividade usam esta data); ANOSEL: ano antigo escolhido no seletor (null = o atual) */
+var HOJE_A, HOJE_M, HOJE_D, INI_A, ANOSEL = null, BASE = PED.blocos || [], HIST = {};
 function dd(n){ return (n < 10 ? "0" : "") + n; }
 function diasMes(m){ return new Date(ANO, m, 0).getDate(); }
 function corte(){ return dd(CUT_D) + "/" + dd(CUT_M); }
-function preparar(){ var p = D.ate.split("-"); ANO = +p[0]; CUT_M = +p[1]; CUT_D = +p[2]; ANT = ANO - 1; A1 = String(ANO); A0 = String(ANT);
+function hojeNum(){ return HOJE_A*10000 + HOJE_M*100 + HOJE_D; }
+function hojeData(){ return new Date(HOJE_A, HOJE_M - 1, HOJE_D); }
+function preparar(){ var p = D.ate.split("-"); HOJE_A = +p[0]; HOJE_M = +p[1]; HOJE_D = +p[2]; INI_A = D.ini ? Math.floor(D.ini/10000) : HOJE_A;
+  if (ANOSEL && (ANOSEL >= HOJE_A || ANOSEL <= INI_A)) ANOSEL = null;
+  if (ANOSEL){ ANO = ANOSEL; CUT_M = 12; CUT_D = 31; } else { ANO = HOJE_A; CUT_M = HOJE_M; CUT_D = HOJE_D; } ANT = ANO - 1; A1 = String(ANO); A0 = String(ANT);
   PARCIAL = CUT_D < diasMes(CUT_M);
   PRE = [["Ano", 1, CUT_M]]; if (CUT_M >= 3) PRE.push(["Últimos 3 meses", CUT_M - 2, CUT_M]); if (CUT_M >= 2) PRE.push([MESL[CUT_M-2], CUT_M - 1, CUT_M - 1]);
   PRE.push([MESL[CUT_M-1] + (PARCIAL ? " (parcial)" : ""), CUT_M, CUT_M]); IDX = null; }
@@ -535,7 +548,7 @@ function telaGeral(R){
   var tit1 = FAT() ? "Faturamento por mês (data de entrega)" : "Vendas por mês (data de emissão)";
   var g = card(tit1, "A faixa marca o período selecionado. Clique em um mês para analisar só ele.", el("div", {class:"legend"}, el("span", null, el("i", {style:"background:var(--y26)"}), A1), el("span", null, el("i", {style:"background:var(--y25)"}), A0)));
   g.append(grafico({a:R.mensal[ANO], b:R.mensal[ANT], na:CUT_M, nb:12, ca:"--y26", cb:"--y25", la:A1, lb:A0, fimA:A1 + (PARCIAL ? " (até " + corte() + ")" : ""), fimB:A0, tracoA:PARCIAL, faixa:[S.a, S.b], clique:true, aria:tit1 + ", " + A1 + " comparado a " + A0}));
-  if (FAT()) g.append(el("p", {class:"note", text:"O relatório traz só pedidos emitidos a partir de 01/01/2025. Por isso o faturamento dos primeiros meses de 2025 aparece menor do que foi (faltam os pedidos emitidos em 2024), e a comparação com 2025 fica inflada nesses meses."}));
+  if (FAT() && ANT === INI_A) g.append(el("p", {class:"note", text:"O painel traz só pedidos emitidos a partir de 01/01/" + INI_A + ". Por isso o faturamento dos primeiros meses de " + INI_A + " aparece menor do que foi (faltam os pedidos emitidos em " + (INI_A - 1) + "), e a comparação com " + INI_A + " fica inflada nesses meses."}));
   var cats = lista(R.cat).map(function(i){ return {k:i.k, t:D.cats[i.k], c:i.c, p:i.p}; }), totCat = cats.reduce(function(s, i){ return s + i.c; }, 0);
   var mix = card(PAL() + " por categoria", "Barra larga: " + A1 + ". Barra fina: " + A0 + ", mesmo período.", legenda()); mix.append(barras(cats, {col:"Categoria", total:totCat, pick:pickCat, sel:S.cat}), el("p", {class:"hint", text:"Clique em uma categoria para filtrar o painel inteiro."}));
   return [kpis(R), el("div", {class:"grid g2"}, g, FAT() ? fatCard(R) : metaCard(R)), repMesCard(R), vfCard(R), el("div", {class:"grid g2"}, mix, leituras(R)), FAT() ? null : situacaoCard(R)].filter(Boolean); }
@@ -587,7 +600,7 @@ function telaClientes(R){
   var t10 = comp.slice(0, 10).reduce(function(s, i){ return s + i.c; }, 0);
   var s = el("section", {class:"card"}, el("div", {class:"trio"},
     el("div", {class:"stat"}, el("div", {class:"l", text:"Concentração"}), el("div", {class:"v num", text:tot ? pct(t10/tot, 1) : "—"}), el("div", {class:"c", text:"das vendas vêm dos 10 maiores clientes, de " + comp.length + " que compraram"})),
-    el("div", {class:"stat"}, el("div", {class:"l", text:"Clientes novos"}), el("div", {class:"v num", text:String(novos.length)}), el("div", {class:"c", text:"primeira compra desde jan/2025 foi neste período · " + brl(vNovos)})),
+    el("div", {class:"stat"}, el("div", {class:"l", text:"Clientes novos"}), el("div", {class:"v num", text:String(novos.length)}), el("div", {class:"c", text:"primeira compra desde jan/" + INI_A + " foi neste período · " + brl(vNovos)})),
     el("div", {class:"stat"}, el("div", {class:"l", text:"Compraram em " + A0 + " e não em " + A1 + ""}), el("div", {class:"v num", text:String(perd.length)}), el("div", {class:"c", text:"valiam " + brl(vPerd) + " no mesmo período de " + A0 + ""}))));
   var opC = {pick:function(k){ abrir("cli", k); }, pickTxt:"Clique para ver o que comprou e quando"};
   function it(i){ var k = D.clis[i.k]; return {k:i.k, t:k[1], s:(k[2] || "") + " · cód. " + k[0], c:i.c, p:i.p}; }
@@ -597,7 +610,7 @@ function telaClientes(R){
   return [s, el("div", {class:"grid g2e"}, c, p)]; }
 
 function telaCarteira(){
-  var val = {}, valAll = {}, hojeN = ANO*10000 + CUT_M*100 + CUT_D, termos = semAc(S.cgCli || "").split(/\s+/).filter(Boolean), okCli = {};
+  var val = {}, valAll = {}, hojeN = hojeNum(), termos = semAc(S.cgCli || "").split(/\s+/).filter(Boolean), okCli = {};
   function cliOk(c){ if (!termos.length) return true; if (okCli[c] === undefined){ var alvo = semAc(D.clis[c][1] + " " + D.clis[c][0] + " " + D.clis[c][2]); okCli[c] = termos.every(function(w){ return alvo.indexOf(w) >= 0; }); } return okCli[c]; }
   D.i.forEach(function(t){ var o = D.o[t[0]]; if (!cliOk(o[3])) return; if (!((S.rep < 0 || o[1] === S.rep) && (S.uf < 0 || o[2] === S.uf) && (S.cat < 0 || t[1] === S.cat))) return; valAll[t[0]] = (valAll[t[0]] || 0) + t[4]; if (!o[7]) val[t[0]] = valAll[t[0]]; });
   var cargas = {}, sem = [], tot = 0, tCom = 0, tSem = 0, venc = 0, peds = {};
@@ -609,14 +622,14 @@ function telaCarteira(){
   var k4 = el("div", {class:"kpis"}, stat("Em aberto (não faturado)", brl(tot), el("span", {text:nf0.format(Object.keys(peds).length) + " pedidos"})),
     stat("Com número de carga", brl(tCom), el("span", {text:nf0.format(lc.length) + " cargas programadas"})),
     stat("Sem carga", brl(tSem), el("span", {text:nf0.format(sem.length) + " pedidos só com data de emissão"})),
-    stat("Previsão já vencida", brl(venc), el("span", {class:"pill " + (venc ? "warn" : "up"), text:venc ? "carga com previsão antes de " + corte() : "nenhuma carga atrasada"})));
+    stat("Previsão já vencida", brl(venc), el("span", {class:"pill " + (venc ? "warn" : "up"), text:venc ? "carga com previsão antes de " + dd(HOJE_D) + "/" + dd(HOJE_M) : "nenhuma carga atrasada"})));
   var esc = el("p", {class:"scope"}); esc.append(el("b", {text:"Posição em " + dataBR(hojeN)}), " · os quadros de carteira mostram pedidos ainda sem data de entrega. Esta tela não usa o filtro de período.");
   var inCli = el("input", {type:"search", id:"cgCli", placeholder:"nome, cidade ou código do cliente", autocomplete:"off", spellcheck:"false", value:S.cgCli || ""});
   inCli.addEventListener("input", function(){ S.cgCli = inCli.value; clearTimeout(S.cgT); S.cgT = setTimeout(function(){ S.cgFoco = true; S.cg = null; render(); }, 350); });
   var fil = el("div", {class:"filters", style:"padding:0"}, el("div", {class:"sel busca", style:"max-width:420px"}, el("label", {for:"cgCli", text:"Cargas do cliente"}), inCli));
   if (termos.length){ var nCli = Object.keys(okCli).filter(function(c){ return okCli[c]; }).length, lim = el("button", {type:"button", class:"limpar", text:"Tirar filtro de cliente"}); lim.addEventListener("click", function(){ S.cgCli = ""; S.cg = null; render(); });
     fil.append(el("span", {class:"scope", text:nCli + (nCli === 1 ? " cliente encontrado" : " clientes encontrados")}), lim); }
-  function ordLinhas(lista, comCarga){ return lista.sort(function(a, z){ return D.o[a][0] - D.o[z][0]; }).map(function(oi){ var o = D.o[oi], dias = Math.round((new Date(ANO, CUT_M-1, CUT_D) - new Date(Math.floor(o[0]/10000), Math.floor(o[0]/100) % 100 - 1, o[0] % 100))/864e5);
+  function ordLinhas(lista, comCarga){ return lista.sort(function(a, z){ return D.o[a][0] - D.o[z][0]; }).map(function(oi){ var o = D.o[oi], dias = Math.round((hojeData() - new Date(Math.floor(o[0]/10000), Math.floor(o[0]/100) % 100 - 1, o[0] % 100))/864e5);
       return el("tr", {class:comCarga ? "sub" : null}, el("td", {class:"dt num", text:dataBR(o[0])}), el("td", {class:"num"}, pedLk(o[6])),
         el("td", null, lk(D.clis[o[3]][1], function(){ abrir("cli", o[3]); }), el("div", {class:"mut", text:D.reps[o[1]].n + " · " + ufNome(o[2]) + " · " + D.sts[o[5]] + " · há " + dias + (dias === 1 ? " dia" : " dias")})),
         el("td", {class:"r num", text:brlFull(valAll[oi])})); }); }
@@ -645,7 +658,7 @@ function telaCarteira(){
     c.ords.push(oi); if (o[7]){ c.vf += valAll[k]; c.df[o[7]] = (c.df[o[7]] || 0) + valAll[k]; } else { c.va += valAll[k]; if (o[8]) c.dp[o[8]] = (c.dp[o[8]] || 0) + valAll[k]; } });
   function maior(m){ var ks = Object.keys(m).map(Number).sort(function(a, z){ return m[z] - m[a]; }); return ks[0] || 0; }
   var lt = Object.keys(todas).map(function(k){ var c = todas[k]; c.data = c.vf > 0 && c.va <= 0.5 ? maior(c.df) : (maior(c.dp) || maior(c.df)); c.sit = c.va <= 0.5 ? "fat" : c.vf > 0.5 ? "parc" : "prev"; return c; }).filter(function(c){ return c.data; });
-  var meses = {}; lt.forEach(function(c){ meses[Math.floor(c.data/100)] = 1; }); var lm = Object.keys(meses).map(Number).sort(function(a, z){ return z - a; }), atual = ANO*100 + CUT_M;
+  var meses = {}; lt.forEach(function(c){ meses[Math.floor(c.data/100)] = 1; }); var lm = Object.keys(meses).map(Number).sort(function(a, z){ return z - a; }), atual = HOJE_A*100 + HOJE_M;
   if (!S.cgMes || !meses[S.cgMes]) S.cgMes = meses[atual] ? atual : (lm[0] || atual);
   var selM = el("select", {id:"cgMes", "aria-label":"Mês das cargas"}); lm.forEach(function(m){ selM.append(el("option", {value:m, text:MESL[m % 100 - 1] + " de " + Math.floor(m/100), selected:m === S.cgMes ? "" : null})); });
   selM.addEventListener("change", function(){ S.cgMes = +selM.value; S.full.cgmes = false; render(); });
@@ -708,7 +721,7 @@ var CLS = [{k:"rec", n:"Recorrente", d:"comprou nos últimos 45 dias", cor:"--go
   {k:"rep", n:"Repescagem", d:"última compra entre 91 e 180 dias", cor:"--y25", pill:"warn"}, {k:"ina", n:"Inativo", d:"181 dias ou mais sem comprar", cor:"--bad", pill:"down"}];
 function clsDe(dias){ return dias <= 45 ? "rec" : dias <= 90 ? "ati" : dias <= 180 ? "rep" : "ina"; }
 function telaAtividade(){
-  var A = S.atv || (S.atv = {cls:null, ord:"dias"}), hoje = new Date(ANO, CUT_M - 1, CUT_D), lim12 = (ANO - 1)*10000 + CUT_M*100 + CUT_D, M = {};
+  var A = S.atv || (S.atv = {cls:null, ord:"dias"}), hoje = hojeData(), lim12 = hojeNum() - 10000, M = {};
   D.o.forEach(function(o){ var x = M[o[3]] || (M[o[3]] = {c:o[3], ult:0, v12:0, p12:{}, r:o[1], u:o[2]}); if (o[0] >= x.ult){ x.ult = o[0]; x.r = o[1]; x.u = o[2]; } if (o[0] > lim12){ x.v12 += o[4]; x.p12[o[6]] = 1; } });
   var L = Object.keys(M).map(function(k){ return M[k]; }).filter(function(x){ return (S.rep < 0 || x.r === S.rep) && (S.uf < 0 || x.u === S.uf); });
   var G = {}; CLS.forEach(function(c){ G[c.k] = {n:0, v:0}; }); var buckets = []; for (var i = 0; i < 25; i++) buckets.push({n:0, v:0}); var porRep = {};
@@ -716,7 +729,7 @@ function telaAtividade(){
     G[x.cls].n++; G[x.cls].v += x.v12; var b = buckets[Math.min(24, Math.max(0, Math.ceil(x.dias/15) - 1))]; b.n++; b.v += x.v12;
     var pr = porRep[x.r] || (porRep[x.r] = {r:x.r, t:0, rec:0, ati:0, rep:0, ina:0}); pr.t++; pr[x.cls]++; });
   var tot = L.length, esc = el("p", {class:"scope"});
-  esc.append(el("b", {text:"Posição em " + dataBR(ANO*10000 + CUT_M*100 + CUT_D)}), " · situação de cada cliente pelo tempo desde a última compra (data de emissão). Vale para os filtros de representante e estado; o representante é o do último pedido do cliente.");
+  esc.append(el("b", {text:"Posição em " + dataBR(hojeNum())}), " · situação de cada cliente pelo tempo desde a última compra (data de emissão). Vale para os filtros de representante e estado; o representante é o do último pedido do cliente.");
   if (!tot) return [esc, el("section", {class:"card"}, el("div", {class:"vazioP", text:"Nenhum cliente com compra para este filtro."}))];
   function marca(k){ A.cls = A.cls === k ? null : k; S.full.atv = false; render(); }
   var k4 = el("div", {class:"kpis"}); CLS.forEach(function(c){ var g = G[c.k], b = el("button", {type:"button", class:"kpi kbtn", "aria-pressed":String(A.cls === c.k)},
@@ -763,7 +776,7 @@ function telaAtividade(){
   lc.append(tabela([{t:"Cliente"}, {t:"Situação"}, {t:"Última compra"}, {t:"Pedidos em 12 meses", r:1}, {t:"Comprou em 12 meses", r:1}], linhas, 40, "atv"));
   var ler = el("section", {class:"card"}), rp = G.rep, ia = G.ina;
   ler.append(el("ul", {class:"reads"}, el("li", null, el("span", {class:"ic warn", text:"!"}), el("div", null, el("b", {text:nf0.format(rp.n) + " clientes em repescagem"}), " compraram " + brl(rp.v) + " nos últimos 12 meses. São os que estão mais perto de virar inativos; vale ordenar por maior compra e ligar primeiro para os maiores.")),
-    el("li", null, el("span", {class:"ic down", text:"▼"}), el("div", null, el("b", {text:nf0.format(ia.n) + " clientes inativos"}), " (" + pct(ia.n/tot, 1) + " da base com compra desde 2025), que ainda somam " + brl(ia.v) + " em compras nos últimos 12 meses.")),
+    el("li", null, el("span", {class:"ic down", text:"▼"}), el("div", null, el("b", {text:nf0.format(ia.n) + " clientes inativos"}), " (" + pct(ia.n/tot, 1) + " da base com compra desde " + INI_A + "), que ainda somam " + brl(ia.v) + " em compras nos últimos 12 meses.")),
     el("li", null, el("span", {class:"ic up", text:"▲"}), el("div", null, el("b", {text:nf0.format(G.rec.n + G.ati.n) + " clientes recorrentes ou ativos"}), " (" + pct((G.rec.n + G.ati.n)/tot, 1) + "), responsáveis por " + brl(G.rec.v + G.ati.v) + " em 12 meses."))));
   return [esc, k4, el("div", {class:"grid g2"}, hc, ler), rc, lc]; }
 
@@ -825,15 +838,15 @@ function fichaCliente(k){
   D.i.forEach(function(t){ var o = D.o[t[0]]; if (o[3] !== k) return; its.push(t); tot += t[4]; peds[o[6]] = 1; if (o[0] > ult) ult = o[0]; if (o[0] < pri) pri = o[0]; reps[o[1]] = Math.max(reps[o[1]] || 0, o[0]); ufs[o[2]] = 1;
     var x = prod[t[2]] || (prod[t[2]] = [0,0]); x[0] += t[4]; x[1] += t[3]; if (inPer(o[0], ANO)) cur += t[4]; else if (inPer(o[0], ANT)) prev += t[4]; });
   its.sort(function(a, z){ var oa = D.o[a[0]], oz = D.o[z[0]]; return oz[0] - oa[0] || oz[6] - oa[6] || z[4] - a[4]; });
-  var nP = Object.keys(peds).length, hoje = new Date(ANO, CUT_M - 1, CUT_D), du = new Date(Math.floor(ult/10000), Math.floor(ult/100) % 100 - 1, ult % 100), dias = Math.round((hoje - du)/864e5);
+  var nP = Object.keys(peds).length, hoje = hojeData(), du = new Date(Math.floor(ult/10000), Math.floor(ult/100) % 100 - 1, ult % 100), dias = Math.round((hoje - du)/864e5);
   var repN = Object.keys(reps).sort(function(a, z){ return reps[z] - reps[a]; }).map(function(r){ return D.reps[r].n; });
   var cab = el("div", {class:"det-h"}, el("div", null, el("div", {class:"k", text:"Cliente"}), el("h2", {text:c[1]}),
       el("p", {text:(c[2] ? c[2] + " · " : "") + Object.keys(ufs).map(ufNome).join(", ") + " · cód. " + c[0]}), el("p", {text:"Atendido por " + repN.join(", ")})), el("button", {type:"button", class:"fechar", text:"Fechar"}));
-  var k4 = el("div", {class:"kpis"}, stat("Comprou desde jan/2025", brl(tot), el("span", {text:nP + " pedidos · primeira em " + dataBR(pri)})),
+  var k4 = el("div", {class:"kpis"}, stat("Comprou desde jan/" + INI_A, brl(tot), el("span", {text:nP + " pedidos · primeira em " + dataBR(pri)})),
     stat("" + A1 + ", " + perNome().toLowerCase(), brl(cur), [delta(cur, prev), el("span", {text:"" + A0 + ": " + brl(prev)})]),
     stat("Ticket médio", brl(nP ? tot/nP : 0), el("span", {text:"por pedido"})),
     stat("Última compra", dataBR(ult), el("span", {class:"pill " + (dias > 180 ? "down" : dias > 90 ? "warn" : "up"), text:dias === 0 ? "hoje" : "há " + dias + " dias"})));
-  var tp = card("O que mais compra", "Todos os pedidos desde janeiro de 2025. Clique em um produto para ver quem mais o compra.");
+  var tp = card("O que mais compra", "Todos os pedidos desde janeiro de " + INI_A + ". Clique em um produto para ver quem mais o compra.");
   tp.append(barras1(Object.keys(prod).map(function(p){ return {t:D.prods[p], v:prod[p][0], q:prod[p][1], fn:function(){ abrir("prod", +p); }}; }).sort(function(a, z){ return z.v - a.v; }).slice(0, 10), "Produto", "Valor"));
   var ant = null, linhas = its.map(function(t){ var o = D.o[t[0]], chave = o[0] + "-" + o[6], novo = chave !== ant; ant = chave;
     return el("tr", {class:novo ? "novo" : null}, el("td", {class:"dt num", text:novo ? dataBR(o[0]) : ""}), el("td", {class:"num"}, novo ? pedLk(o[6]) : ""),
@@ -871,7 +884,7 @@ function fichaProduto(k){
   var linhas = vendas.map(function(t){ var o = D.o[t[0]]; return el("tr", null, el("td", {class:"dt num", text:dataBR(o[0])}),
       el("td", null, lk(D.clis[o[3]][1], function(){ abrir("cli", o[3]); }), el("div", {class:"mut", text:ufNome(o[2]) + " · " + D.reps[o[1]].n + (D.cores[t[5]] ? " · " + D.cores[t[5]] : "")}), el("div", {class:"mut"}, "Pedido ", pedLk(o[6]), " · " + sitTxt(o))),
       el("td", {class:"r num", text:nf0.format(t[3])}), el("td", {class:"r num", text:brlFull(t[4])})); });
-  var hv = card("Vendas por data de emissão", vendas.length + " vendas desde janeiro de 2025" + filtro + ", da mais recente para a mais antiga");
+  var hv = card("Vendas por data de emissão", vendas.length + " vendas desde janeiro de " + INI_A + filtro + ", da mais recente para a mais antiga");
   hv.append(tabela([{t:"Emissão"}, {t:"Cliente"}, {t:"Qtd.", r:1}, {t:"Valor", r:1}], linhas, 40));
   return [cab, k4, rc, el("div", {class:"grid g2e"}, ru, rr), hv]; }
 function renderDet(){
@@ -892,8 +905,8 @@ function buscar(txt){ var sug = document.getElementById("sug"), ps = semAc(txt).
   function acha(l){ return l.filter(function(x){ return ps.every(function(w){ return x.s.indexOf(w) >= 0; }); }).slice(0, 6); }
   var ac = acha(IDX.c), ap = acha(IDX.p); sug.replaceChildren();
   function item(t, sub, fn){ var b = el("button", {type:"button"}, t, el("small", {text:sub})); b.addEventListener("click", function(){ sug.hidden = true; document.getElementById("q").value = ""; fn(); }); sug.append(b); }
-  if (ac.length){ sug.append(el("div", {class:"g", text:"Clientes"})); ac.forEach(function(x){ var c = D.clis[x.i]; item(c[1], (c[2] || "") + " · " + brl(x.v) + " desde jan/2025", function(){ abrir("cli", x.i); }); }); }
-  if (ap.length){ sug.append(el("div", {class:"g", text:"Produtos"})); ap.forEach(function(x){ item(D.prods[x.i], brl(x.v) + " desde jan/2025", function(){ abrir("prod", x.i); }); }); }
+  if (ac.length){ sug.append(el("div", {class:"g", text:"Clientes"})); ac.forEach(function(x){ var c = D.clis[x.i]; item(c[1], (c[2] || "") + " · " + brl(x.v) + " desde jan/" + INI_A, function(){ abrir("cli", x.i); }); }); }
+  if (ap.length){ sug.append(el("div", {class:"g", text:"Produtos"})); ap.forEach(function(x){ item(D.prods[x.i], brl(x.v) + " desde jan/" + INI_A, function(){ abrir("prod", x.i); }); }); }
   if (!ac.length && !ap.length) sug.append(el("div", {class:"g", text:"Nada encontrado"}));
   sug.hidden = false; }
 
@@ -958,7 +971,7 @@ function aplicar(){ var m = U.novo;
       .then(function(){ U.fase = "ok"; U.msg = "Dados gravados. Recarregando o painel…"; renderDet(); setTimeout(function(){ location.reload(); }, 900); })
       .catch(function(){ U.fase = "erro2"; U.msg = "Não consegui gravar no servidor. Os dados antigos foram mantidos; tente de novo."; renderDet(); });
     return; }
-  PED = m.dados; D = montarD(PED); preparar(); S.a = 1; S.b = CUT_M; S.rep = -1; S.uf = -1; S.cat = -1; S.full = {}; opcoes();
+  PED = m.dados; BASE = PED.blocos; HIST = {}; ANOSEL = null; D = montarD(PED); preparar(); S.a = 1; S.b = CUT_M; S.rep = -1; S.uf = -1; S.cat = -1; S.full = {}; opcoes();
   U.fase = "gravando"; U.msg = "Gravando…"; render();
   var use = window.claude && window.claude.use ? window.claude.use("artifact") : Promise.resolve(null);
   use.then(function(art){ if (!art) throw {code:"not_granted"}; return art.publish(documento()); })
@@ -1004,7 +1017,37 @@ function fichaAtualizar(){
 /* ---------- controle ---------- */
 var app = document.getElementById("app"), fRep = document.getElementById("fRep"), fUf = document.getElementById("fUf"), fCat = document.getElementById("fCat"), fDe = document.getElementById("fDe"), fAte = document.getElementById("fAte");
 function quandoISO(t){ var d = new Date(t); return isNaN(d) ? "" : dd(d.getDate()) + "/" + dd(d.getMonth() + 1) + "/" + d.getFullYear() + " às " + dd(d.getHours()) + ":" + dd(d.getMinutes()); }
+var fAno = document.getElementById("fAno"), fHist = document.getElementById("fHist"), hMsg = document.getElementById("histMsg");
+function anosVelhos(){ var SI = window.__SITE__, desde = SI && SI.desde ? +String(SI.desde).slice(0, 4) : 0;
+  return SI && SI.carregarAno && SI.anos && desde ? SI.anos.map(function(x){ return +x.ano; }).filter(function(a){ return a < desde; }).sort(function(a, z){ return z - a; }) : []; }
+function opcoesAno(){
+  fAno.replaceChildren(); for (var a = HOJE_A; a > INI_A; a--) fAno.append(el("option", {value:a, text:a + " × " + (a - 1)}));
+  fAno.value = ANO; document.getElementById("fAnoBox").hidden = HOJE_A - INI_A < 2;
+  var v = anosVelhos(); document.getElementById("histBox").hidden = !v.length;
+  if (v.length) document.getElementById("histTxt").textContent = "Incluir anos antes de " + (v[0] + 1); }
+/* refaz a base com os anos antigos já carregados; filtros seguem pelo nome, porque os índices mudam */
+function reconstruir(){
+  var kRep = S.rep >= 0 ? D.reps[S.rep].r : null, kUf = S.uf >= 0 ? D.ufs[S.uf] : null, kCat = S.cat >= 0 ? D.cats[S.cat] : null, anoAntes = ANO, velhos = [];
+  if (fHist.checked) Object.keys(HIST).map(Number).sort(function(a, z){ return a - z; }).forEach(function(a){ velhos = velhos.concat(HIST[a]); });
+  PED.blocos = velhos.concat(BASE); D = montarD(PED); preparar();
+  S.rep = kRep == null ? -1 : D.reps.findIndex(function(r){ return r.r === kRep; }); S.uf = kUf == null ? -1 : D.ufs.indexOf(kUf); S.cat = kCat == null ? -1 : D.cats.indexOf(kCat);
+  if (ANO !== anoAntes){ S.a = 1; S.b = CUT_M; } else { S.b = Math.min(S.b, CUT_M); S.a = Math.min(S.a, S.b); }
+  S.full = {}; S.det = null; opcoes(); render(); }
+function carregarVelhos(){
+  var falta = anosVelhos(), tot = falta.length, n = 0;
+  fHist.disabled = true; hMsg.className = "";
+  if (Object.keys(HIST).length) reconstruir();
+  function prox(){ var a = falta.shift();
+    if (a == null){ fHist.disabled = false; hMsg.textContent = tot ? "Anos de " + (INI_A) + " a " + (HOJE_A - 1) + " carregados. Escolha o ano no seletor Ano." : ""; return; }
+    n++; if (HIST[a]) return prox();
+    hMsg.textContent = "Carregando " + a + "… " + n + " de " + tot;
+    window.__SITE__.carregarAno(a).then(function(bl){ HIST[a] = bl; if (fHist.checked) reconstruir(); prox(); })
+      .catch(function(){ fHist.disabled = false; hMsg.className = "erro";
+        hMsg.replaceChildren("Não consegui carregar " + a + ". Os anos já carregados continuam no painel.", el("button", {type:"button", text:"Tentar de novo"}));
+        hMsg.querySelector("button").addEventListener("click", carregarVelhos); }); }
+  prox(); }
 function opcoes(){
+  opcoesAno();
   var tu = {}, tc = {}; D.i.forEach(function(t){ var o = D.o[t[0]]; if (Math.floor(o[0]/10000) === ANO){ tu[o[2]] = (tu[o[2]] || 0) + t[4]; tc[t[1]] = (tc[t[1]] || 0) + t[4]; } });
   fDe.replaceChildren(); fAte.replaceChildren(); for (var i = 1; i <= CUT_M; i++){ fDe.append(el("option", {value:i, text:MESL[i-1].slice(0, 3).toLowerCase()})); fAte.append(el("option", {value:i, text:MESL[i-1].slice(0, 3).toLowerCase()})); }
   var ga = el("optgroup", {label:"Lista atual"}), gi = el("optgroup", {label:"Outros com venda"});
@@ -1015,12 +1058,14 @@ function opcoes(){
   var per = document.getElementById("periodo"); per.replaceChildren(); PRE.forEach(function(p, i){ per.append(el("button", {type:"button", "data-p":i, text:p[0]})); });
   var atu = el("button", {type:"button", class:"atu", text:"Atualizar dados"}); atu.addEventListener("click", function(){ U = {fase:"inicio", msg:"", novo:null}; S.det = {t:"upd"}; renderDet(); });
   var ult = D.em ? "Última atualização: " + quandoISO(D.em) + (D.rel ? " · relatório do ERP de " + D.rel.replace(" ", " às ") : "") : "Última atualização: " + (D.rel ? D.rel.replace(" ", " às ") + " (emissão do relatório do ERP)" : "sem registro");
-  document.getElementById("asof").replaceChildren("Valores líquidos de cancelamento · ", el("b", {text:"venda = data de emissão; faturamento = data de entrega"}), " · pedidos emitidos de 01/01/2025 a ", el("b", {text:dataBR(+D.ate.replace(/-/g, ""))}), el("br"), el("b", {text:ult}), el("br"), atu);
+  document.getElementById("asof").replaceChildren("Valores líquidos de cancelamento · ", el("b", {text:"venda = data de emissão; faturamento = data de entrega"}), " · pedidos emitidos de 01/01/" + INI_A + " a ", el("b", {text:dataBR(+D.ate.replace(/-/g, ""))}), ANOSEL ? el("span", null, " · ", el("b", {text:"comparando " + A1 + " com " + A0})) : "", el("br"), el("b", {text:ult}), el("br"), atu);
   document.getElementById("rodape").textContent = "Fonte: Relatório de Documentos Analítico do ERP (pedidos classificados como VENDA; mostruário e remessas ficam fora). "
-    + "Venda é o pedido pela data de emissão. Faturamento é a entrega do pedido pela Dt.Entrega do ERP, com número de carga; pedido sem Dt.Entrega está em aberto. Como o relatório começa nos pedidos emitidos em 01/01/2025, o faturamento do início de 2025 fica incompleto. "
+    + "Venda é o pedido pela data de emissão. Faturamento é a entrega do pedido pela Dt.Entrega do ERP, com número de carga; pedido sem Dt.Entrega está em aberto. Como a base carregada começa nos pedidos emitidos em 01/01/" + INI_A + ", o faturamento do início de " + INI_A + " fica incompleto. "
     + "Comparações usam sempre o mesmo intervalo de " + A0 + (PARCIAL ? ", com " + MESL[CUT_M-1].toLowerCase() + " cortado no dia " + CUT_D + " nos dois anos. " : ". ")
     + "Metas mensais por representante conforme o relatório Metas de Vendas para Pedido do ERP, emitido em " + METAS.rel + "; a meta é medida sobre as vendas (emissão). Pedidos recentes ainda podem ser cancelados, o que reduz os números do mês em aberto."; }
 function ligar(){
+  fAno.addEventListener("change", function(){ var a = +fAno.value; ANOSEL = a === HOJE_A ? null : a; preparar(); S.a = 1; S.b = CUT_M; S.full = {}; opcoes(); render(); });
+  fHist.addEventListener("change", function(){ if (fHist.checked) carregarVelhos(); else { hMsg.textContent = ""; hMsg.className = ""; reconstruir(); } });
   fRep.addEventListener("change", function(){ S.rep = +fRep.value; render(); }); fUf.addEventListener("change", function(){ S.uf = +fUf.value; render(); }); fCat.addEventListener("change", function(){ S.cat = +fCat.value; render(); });
   fDe.addEventListener("change", function(){ S.a = +fDe.value; if (S.b < S.a) S.b = S.a; render(); }); fAte.addEventListener("change", function(){ S.b = +fAte.value; if (S.a > S.b) S.a = S.b; render(); });
   document.getElementById("periodo").addEventListener("click", function(ev){ var b = ev.target.closest("button"); if (b){ var p = PRE[+b.dataset.p]; S.a = p[1]; S.b = p[2]; render(); } });
@@ -1061,7 +1106,9 @@ try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", rend
     if (!r || r.erro){ aviso("Este acesso não é de gerente.", true); return; }
     var at = r.atualizado || {};
     document.getElementById("dados").textContent = JSON.stringify({rel:at.emissao || "", em:at.em || "", metas:r.metas || [], blocos:r.blocos || []});
-    window.__SITE__ = { nome:r.nome, enviar:function(blocos, meta, prog){ var lote = "p" + Date.now(), passo = 250, i = 0;
+    window.__SITE__ = { nome:r.nome, anos:r.anos || [], desde:r.desde || "",
+      carregarAno:function(ano){ return rpc("api_painel", {p_token:token, p_ano:ano}).then(function(x){ if (!x || x.erro) throw new Error("acesso"); return x.blocos || []; }); },
+      enviar:function(blocos, meta, prog){ var lote = "p" + Date.now(), passo = 250, i = 0;
       function prox(){ if (i >= blocos.length) return Promise.resolve();
         var ini = i === 0, parte = blocos.slice(i, i + passo), fim = i + passo >= blocos.length; i += passo;
         prog("Enviando " + Math.min(i, blocos.length).toLocaleString("pt-BR") + " de " + blocos.length.toLocaleString("pt-BR") + " pedidos…");
