@@ -25,30 +25,47 @@ const GP_VAZIAS = new Set(["DE", "DA", "DO", "COM", "E", "LACA", "LAMINA", "LAMI
 const GP_GENERICAS = new Set(["CENTRO", "JANTAR", "CABECEIRA", "CENTRAL", "LATERAL", "MOLDURA", "ESPELHO", "PRATA", "SPECIAL", "COMPLETO"]);
 function gpNums(s) { return (gpNorm(s).match(/\b\d{3,4}\b/g) || []).filter((n) => +n >= 300); }
 function gpPalavras(s) { return gpNorm(s).split(" ").filter((w) => w.length > 2 && !/\d/.test(w) && !GP_VAZIAS.has(w)); }
-function casarTabela(prod, codigo, itens) {
-  const pn = gpNums(prod), pw = gpPalavras(prod), par = /^PAR\b/.test(gpNorm(prod));
+// faixa do tecido pelo código TEC da cor (aba "Tecidos" das tabelas v7, igual nas 3 regiões)
+const GP_TECIDO = {};
+[["LITE", "24110 24111 24112 27622 27623 28096 28094 28095 28097 30784 30785 31387 33049 33048"],
+ ["PREMIUM", "22991 22992 22993 28135 28136 28137 32283 32679 32783"],
+ ["ILLUMINATO", "22998 22999 24108 24109 28098 28100 28134"]].forEach(([f, l]) => l.split(" ").forEach((c) => { GP_TECIDO[c] = f; }));
+// painéis vendidos por m² na tabela (preço da peça = preço do m² × largura × altura do nome do produto)
+const GP_M2 = new Set(["21926", "23101", "26199", "30510", "30524"]);
+function casarTabela(prod, codigo, itens, cor) {
+  const pn = gpNums(prod), pw = gpPalavras(prod), par = /^PAR\b/.test(gpNorm(prod)), np = gpNorm(prod);
   const tam = (t) => { const tn = gpNums(t.desc); if (!pn.length && !tn.length) return 1; if (pn.length && tn.length) return pn.some((n) => tn.includes(n)) ? 1 : -1; return 0; };
   const pts = (t) => { const tw = new Set(gpPalavras(t.desc)); return pw.filter((w) => tw.has(w)).length; };
-  const saida = (t, via) => { const tp = /^PAR\b/.test(gpNorm(t.desc)); return { preco: par && !tp ? Math.round(t.preco * 200) / 100 : t.preco, unid: par ? (tp ? "o par" : "o par (2 × un. da tabela)") : "un.", via, desc: t.desc, cod: t.cod }; };
+  const med = /(\d{3,4})\s*X\s*(\d{3,4})/i.exec(String(prod || "")), m2 = med ? (+med[1] * +med[2]) / 1e6 : 0;
+  const saida = (t, via) => { const tp = /^PAR\b/.test(gpNorm(t.desc));
+    if (GP_M2.has(String(t.cod))) return m2 ? { preco: Math.round(t.preco * m2 * 100) / 100, unid: "un. (" + brl2(t.preco) + "/m² × " + m2.toLocaleString("pt-BR") + " m²)", via, desc: t.desc, cod: t.cod } : null;
+    return { preco: par && !tp ? Math.round(t.preco * 200) / 100 : t.preco, unid: par ? (tp ? "o par" : "o par (2 × un. da tabela)") : "un.", via, desc: t.desc, cod: t.cod }; };
   const unicos = (l) => { const v = new Map(); for (const t of l) { const k = t.desc + "|" + t.preco; if (!v.has(k)) v.set(k, t); } return [...v.values()]; };
-  let c = unicos(itens.filter((t) => t.cod === String(codigo) && tam(t) >= 0));
+  const lado = (d) => { const nd = gpNorm(d); return (np.includes("CENTRAL") && nd.includes("LATERAL") && !nd.includes("CENTRAL")) || (np.includes("LATERAL") && nd.includes("CENTRAL") && !nd.includes("LATERAL")); };
+  // faixa do tecido: TEC da cor do item → LITE / PREMIUM / ILLUMINATO; se a tabela separar por faixa, fica só a faixa certa
+  const tec = /TEC\s*0*(\d{5})/i.exec(String(cor || "")), faixa = tec ? GP_TECIDO[tec[1]] : null;
+  const porFaixa = (l) => { const fx = ["LITE", "PREMIUM", "ILLUMINATO"]; if (!l.some((t) => fx.some((f) => gpNorm(t.desc).includes(f)))) return l;
+    if (!faixa) return l; const so = l.filter((t) => gpNorm(t.desc).includes(faixa)); return so.length ? so : l; };
+  let c = porFaixa(unicos(itens.filter((t) => t.cod === String(codigo) && tam(t) >= 0 && !lado(t.desc))));
   if (c.length) { const seg = c.filter((t) => tam(t) === 1), base = seg.length ? seg : c, mx = Math.max(...base.map(pts)), top = base.filter((t) => pts(t) === mx);
-    if (top.length === 1 && tam(top[0]) === 1) return saida(top[0], "código");
-    if (new Set(top.map((t) => t.preco)).size === 1 && tam(top[0]) === 1) return saida(top[0], "código");
-    return { opcoes: c.map((t) => saida(t, "código")) }; }
-  // pelo nome nunca é automático: vira sugestão para o gerente confirmar
+    // um preço só entre os mais parecidos → automático (mesmo quando a tabela não traz a medida)
+    if (new Set(top.map((t) => t.preco)).size === 1) return saida(top[0], "código");
+    const op = c.map((t) => saida(t, "código")).filter(Boolean); return op.length ? { opcoes: op } : null; }
+  // pelo nome: automático só com um candidato e sem conflito central × lateral; vem marcado "pelo nome, conferir"
   const modelo = pw.slice(1).filter((w) => !GP_GENERICAS.has(w));
   if (!pw.length || !modelo.length) return null;
-  c = unicos(itens.filter((t) => { if (/\+/.test(t.desc)) return false; const tw = new Set(gpPalavras(t.desc)); return tw.has(pw[0]) && tw.has(modelo[0]) && tam(t) >= 0; }));
+  c = porFaixa(unicos(itens.filter((t) => { if (/\+/.test(t.desc)) return false; const tw = new Set(gpPalavras(t.desc)); return tw.has(pw[0]) && tw.has(modelo[0]) && tam(t) >= 0; })));
   if (!c.length) return null;
   c.sort((a, b) => tam(b) - tam(a) || pts(b) - pts(a));
-  return { opcoes: c.slice(0, 8).map((t) => saida(t, "nome")) };
+  const ok = c.filter((t) => !lado(t.desc));
+  if (ok.length === 1 || (ok.length > 1 && new Set(ok.map((t) => t.preco)).size === 1)) return saida(ok[0], "nome");
+  const op = c.slice(0, 8).map((t) => saida(t, "nome")).filter(Boolean); return op.length ? { opcoes: op } : null;
 }
 function gpTabela(regiao) { const a = gp.tabs && gp.tabs.ativas; return a ? a.find((t) => t.regiao === regiao) || null : null; }
 // preço de tabela de um item da PE na região escolhida: {preco, unid, via, desc} | {opcoes:[...]} | null
 function gpPrecoTabela(i, regiao) {
   const t = gpTabela(regiao || gp.regiao); if (!t || !i.em_linha) return null;
-  const k = t.id + "|" + i.id; if (!(k in gp.cache)) gp.cache[k] = casarTabela(i.produto, i.codigo, t.itens || []);
+  const k = t.id + "|" + i.id; if (!(k in gp.cache)) gp.cache[k] = casarTabela(i.produto, i.codigo, t.itens || [], i.cor);
   const r = gp.cache[k]; if (!r || !r.opcoes) return r;
   const e = gp.esc[t.regiao + "|" + i.produto], o = e != null ? r.opcoes.find((x) => x.desc + "|" + x.preco === e) : null;
   return o ? Object.assign({ escolhida: true }, o) : r;
