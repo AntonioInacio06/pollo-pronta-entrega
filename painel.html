@@ -417,6 +417,7 @@ function comMais(chave, itens, n, opt){ var wrap = el("div"), aberto = S.full[ch
     b.addEventListener("click", function(){ S.full[chave] = !aberto; render(); }); wrap.append(b); }
   return wrap; }
 function pickRep(k){ S.rep = S.rep === k ? -1 : k; render(); }
+function pickRepFicha(k){ S.rep = k; abrir("rep", k); render(); }
 function pickUf(k){ S.uf = S.uf === k ? -1 : k; render(); }
 function pickCat(k){ S.cat = S.cat === k ? -1 : k; render(); }
 
@@ -537,9 +538,9 @@ function repMesCard(R){ var M = mesMeta(), nomeM = MESL[M-1].toLowerCase(), aber
     var r = el("div", {class:"row rm pick" + (S.rep === x.k ? " on" : ""), tabindex:"0", role:"button"}, el("div", {class:"n"}, el("div", {class:"t"}, el("span", {class:"rank num", text:(n+1) + "."}), nome)),
       el("div", {class:"bars"}, el("span", {class:x.v > 0.5 ? "" : "z", style:"width:" + (x.v/max*100).toFixed(2) + "%"}), el("span", {class:"f" + (x.f > 0.5 ? "" : " z"), style:"width:" + (x.f/max*100).toFixed(2) + "%"})),
       el("div", {class:"val num", text:brl(x.v)}), el("div", {class:"d num", text:brl(x.f)}));
-    var linhas = [{c:cssv("--y26"), k:"Vendeu em " + nomeM, v:brlFull(x.v)}, {c:cssv("--fat"), k:"Faturou em " + nomeM, v:brlFull(x.f)}, {k:S.rep === x.k ? "Clique para tirar o filtro" : "Clique para filtrar", v:""}];
+    var linhas = [{c:cssv("--y26"), k:"Vendeu em " + nomeM, v:brlFull(x.v)}, {c:cssv("--fat"), k:"Faturou em " + nomeM, v:brlFull(x.f)}, {k:"Clique para abrir a ficha", v:""}];
     r.addEventListener("pointermove", function(ev){ showTip(ev, nome, linhas); }); r.addEventListener("pointerleave", hideTip);
-    r.addEventListener("click", function(){ pickRep(x.k); }); r.addEventListener("keydown", function(ev){ if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); pickRep(x.k); } });
+    r.addEventListener("click", function(){ pickRepFicha(x.k); }); r.addEventListener("keydown", function(ev){ if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); pickRepFicha(x.k); } });
     box.append(r); });
   box.append(el("div", {class:"row rm tot"}, el("div", {class:"n"}, el("div", {class:"t", text:"Total de " + ls.length + " representantes"})), el("div"), el("div", {class:"val num", text:brl(tv)}), el("div", {class:"d num", text:brl(tf)})));
   c.append(box); return c; }
@@ -555,9 +556,9 @@ function telaGeral(R){
 function telaReps(R){
   var arr = lista(R.rep), ativos = arr.filter(function(i){ return i.c > 0; }), parados = arr.filter(function(i){ return !i.c && i.p > 0; });
   var tot = ativos.reduce(function(s, i){ return s + i.c; }, 0);
-  var c = card("Ranking de representantes", perNome() + ". Clique em um representante para filtrar o painel inteiro.", legenda());
-  c.append(comMais("reps", ativos.map(function(i){ return {k:i.k, t:D.reps[i.k].n, s:D.reps[i.k].a ? null : "fora da lista atual de representantes", c:i.c, p:i.p}; }), 15, {col:"Representante", rank:true, total:tot, pick:pickRep, sel:S.rep, ordenar:true}));
-  c.append(el("p", {class:"hint"}, S.rep >= 0 ? ["Filtrado em " + D.reps[S.rep].n + ". ", lk("Abrir a ficha do representante (clientes, produtos e pedidos)", function(){ abrir("rep", S.rep); })] : "Depois de clicar em um representante, aparece aqui o atalho para a ficha dele (clientes, produtos e pedidos)."));
+  var c = card("Ranking de representantes", perNome() + ". Clique em um representante para abrir a ficha dele (clientes, produtos e pedidos) e filtrar o painel.", legenda());
+  c.append(comMais("reps", ativos.map(function(i){ return {k:i.k, t:D.reps[i.k].n, s:D.reps[i.k].a ? null : "fora da lista atual de representantes", c:i.c, p:i.p}; }), 15, {col:"Representante", rank:true, total:tot, pick:pickRepFicha, pickTxt:"Clique para abrir a ficha", sel:S.rep, ordenar:true}));
+  c.append(el("p", {class:"hint"}, S.rep >= 0 ? ["Filtrado em " + D.reps[S.rep].n + ". ", lk("Abrir de novo a ficha do representante (clientes, produtos e pedidos)", function(){ abrir("rep", S.rep); })] : "Clique no nome do representante para abrir a ficha dele."));
   if (parados.length){ var v = parados.reduce(function(s, i){ return s + i.p; }, 0); c.append(el("p", {class:"note", text:parados.length + " representantes venderam " + brl(v) + " no mesmo período de " + A0 + " e não têm venda em " + A1 + ": " + parados.slice(0, 6).map(function(i){ return D.reps[i.k].n + " (" + brl(i.p) + ")"; }).join(", ") + (parados.length > 6 ? " e outros." : ".")})); }
   var MM = mesMeta(), m = card("Meta de " + MESL[MM-1].toLowerCase() + " por representante", (MM === CUT_M && PARCIAL ? "Vendido até " + corte() : "Vendido no mês") + " sobre a meta cheia do mês" + (temMeta(MM) ? "" : " · sem meta cadastrada neste mês") + (S.uf >= 0 || S.cat >= 0 ? " · com os filtros de estado e categoria aplicados" : ""));
   var rows = el("div", {class:"rows"}); rows.append(el("div", {class:"row h mrow"}, el("div", {text:"Representante"}), el("div", {text:"Andamento"}), el("div", {class:"val", text:"Vendido / meta"}), el("div", {class:"d", text:"%"})));
@@ -700,7 +701,7 @@ function telaMetas(){
   g.append(grafico({a:vMes, b:mMes, na:CUT_M, nb:12, ca:"--y26", cb:"--y25", la:"Vendas", lb:"Meta", fimA:"Vendas", fimB:"Meta", tracoA:PARCIAL, dif:"valor", faixa:[S.a, S.b], clique:true, sufixo:" de " + A1, aria:"Meta e vendas por mês em " + A1}));
   var ls = L.slice().sort(function(a, z){ return z.m - a.m || z.ma - a.ma; });
   var zer2 = ls.filter(function(x){ return x.m > 0 && !(x.v > 0.5); }).map(function(x){ return x.n + " (" + brl(x.m) + ")"; });
-  var linhas = ls.filter(function(x){ return x.v > 0.5; }).map(function(x){ return el("tr", {class:S.rep === x.i ? "on" : null}, el("td", null, lk(x.n, function(){ pickRep(x.i); })), el("td", {class:"r num", text:x.m ? brlFull(x.m) : "—"}), el("td", {class:"r num", text:brlFull(x.v)}), el("td", {class:"r"}, pill(x.v, x.m)),
+  var linhas = ls.filter(function(x){ return x.v > 0.5; }).map(function(x){ return el("tr", {class:S.rep === x.i ? "on" : null}, el("td", null, lk(x.n, function(){ pickRepFicha(x.i); })), el("td", {class:"r num", text:x.m ? brlFull(x.m) : "—"}), el("td", {class:"r num", text:brlFull(x.v)}), el("td", {class:"r"}, pill(x.v, x.m)),
       el("td", {class:"r num", text:x.m > x.v ? brlFull(x.m - x.v) : "—"}), el("td", {class:"r num", text:brlFull(x.ma)}), el("td", {class:"r num", text:brlFull(x.va)}), el("td", {class:"r"}, pill(x.va, x.ma))); });
   var semMeta = 0; D.reps.forEach(function(r, i){ if (!METAS.reps[r.r] && V[i]) semMeta += V[i][M-1] || 0; });
   var tc = card("Meta e vendido por representante em " + nomeM, (aberto ? "Vendido até " + corte() + ". " : "") + "Acumulado = janeiro a " + nomeM + ". Clique no nome para filtrar o painel pelo representante.");
@@ -880,8 +881,8 @@ function fichaProduto(k){
   if (lc.length) rc.append(comMais("fpcli", lc, 10, {col:"Cliente", rank:true, total:cur, pick:function(x){ abrir("cli", x); }, pickTxt:"Clique para abrir o cliente"})); else rc.append(el("p", {class:"sub", text:"Sem vendas deste produto no período com o filtro atual."}));
   var ru = card("Ranking por estado", "Clique em um estado para filtrar o painel e esta ficha.", legenda());
   ru.append(barras(lst(uf).map(function(i){ return {k:i.k, t:ufNome(i.k), c:i.c, p:i.p}; }), {col:"Estado", rank:true, pick:pickUf, sel:S.uf}));
-  var rr = card("Ranking por representante", "Clique em um representante para filtrar o painel e esta ficha.", legenda());
-  rr.append(barras(lst(rp).map(function(i){ return {k:i.k, t:D.reps[i.k].n, c:i.c, p:i.p}; }), {col:"Representante", rank:true, pick:pickRep, sel:S.rep}));
+  var rr = card("Ranking por representante", "Clique em um representante para abrir a ficha dele.", legenda());
+  rr.append(barras(lst(rp).map(function(i){ return {k:i.k, t:D.reps[i.k].n, c:i.c, p:i.p}; }), {col:"Representante", rank:true, pick:pickRepFicha, pickTxt:"Clique para abrir a ficha", sel:S.rep}));
   var linhas = vendas.map(function(t){ var o = D.o[t[0]]; return el("tr", null, el("td", {class:"dt num", text:dataBR(o[0])}),
       el("td", null, lk(D.clis[o[3]][1], function(){ abrir("cli", o[3]); }), el("div", {class:"mut"}, ufNome(o[2]) + " · ", lk(D.reps[o[1]].n, function(){ abrir("rep", o[1]); }), D.cores[t[5]] ? " · " + D.cores[t[5]] : ""), el("div", {class:"mut"}, "Pedido ", pedLk(o[6]), " · " + sitTxt(o))),
       el("td", {class:"r num", text:nf0.format(t[3])}), el("td", {class:"r num", text:brlFull(t[4])})); });
@@ -1090,7 +1091,7 @@ function opcoes(){
 function ligar(){
   fAno.addEventListener("change", function(){ var a = +fAno.value; ANOSEL = a === HOJE_A ? null : a; preparar(); S.a = 1; S.b = CUT_M; S.full = {}; opcoes(); render(); });
   fHist.addEventListener("change", function(){ if (fHist.checked) carregarVelhos(); else { hMsg.textContent = ""; hMsg.className = ""; reconstruir(); } });
-  fRep.addEventListener("change", function(){ S.rep = +fRep.value; render(); }); fUf.addEventListener("change", function(){ S.uf = +fUf.value; render(); }); fCat.addEventListener("change", function(){ S.cat = +fCat.value; render(); });
+  fRep.addEventListener("change", function(){ S.rep = +fRep.value; if (S.rep >= 0) abrir("rep", S.rep); render(); }); fUf.addEventListener("change", function(){ S.uf = +fUf.value; render(); }); fCat.addEventListener("change", function(){ S.cat = +fCat.value; render(); });
   fDe.addEventListener("change", function(){ S.a = +fDe.value; if (S.b < S.a) S.b = S.a; render(); }); fAte.addEventListener("change", function(){ S.b = +fAte.value; if (S.a > S.b) S.a = S.b; render(); });
   document.getElementById("periodo").addEventListener("click", function(ev){ var b = ev.target.closest("button"); if (b){ var p = PRE[+b.dataset.p]; S.a = p[1]; S.b = p[2]; render(); } });
   document.getElementById("modo").addEventListener("click", function(ev){ var b = ev.target.closest("button"); if (b){ S.modo = b.dataset.m; render(); } });

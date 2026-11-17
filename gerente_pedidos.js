@@ -139,35 +139,69 @@ function gpItensFiltrados() {
 function gpLinhasRel() {
   const d = gpDescontos();
   return gpItensFiltrados().map((i) => { const b = gpPrecoBase(i), f = fatorDesc(i.em_linha ? d.linha : d.fora);
-    return { cat: i.categoria || "", cod: i.codigo || "", prod: titulo(i.produto), cor: titulo(i.cor), tipo: i.em_linha ? "Em linha" : "Fora de linha", livres: i.disponivel, estoque: i.qtd,
+    return { produto: i.produto, cat: i.categoria || "", cod: i.codigo || "", prod: titulo(i.produto), cor: titulo(i.cor), tipo: i.em_linha ? "Em linha" : "Fora de linha", livres: i.disponivel, estoque: i.qtd,
       orig: b.valor, fin: b.valor == null ? null : Math.round(b.valor * f * 100) / 100, unid: b.valor == null ? "" : (b.unid || "un."),
       obs: b.valor != null ? "" : b.origem === "opcoes" ? "Escolher variante" : b.origem === "semTabela" ? "Sem tabela da região" : i.em_linha ? "Consultar tabela" : "Preço sob consulta" }; });
 }
 const GP_FILTRO_TXT = { todos: "Tudo", linha: "Em linha", fora: "Fora de linha", sem: "Sem foto", novas: "Foto enviada pela gerência" };
+// foto do produto em JPEG pequeno (dataURL) para os relatórios; foto enviada pela gerência tem prioridade
+const gpFotoRel = {};
+async function gpFotoDataURL(produto) {
+  if (produto in gpFotoRel) return gpFotoRel[produto];
+  let src = null;
+  if (pe.novas[produto]) {
+    if (!fotoCache[produto]) { try { const r = await sb.rpc("api_foto", { p_token: token, p_produto: produto }); if (r.data && r.data.dados) fotoCache[produto] = r.data.dados; } catch (e) {} }
+    src = fotoCache[produto] || null;
+  }
+  if (!src && pe.fotos[produto]) src = pe.fotos[produto];
+  let out = null;
+  if (src) out = await new Promise((ok) => { const im = new Image(); im.onload = () => { try { const L = 200, k = Math.min(1, L / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * k)), h = Math.max(1, Math.round(im.naturalHeight * k));
+      const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.drawImage(im, 0, 0, w, h); ok({ url: c.toDataURL("image/jpeg", 0.8), w, h }); } catch (e) { ok(null); } };
+    im.onerror = () => ok(null); im.src = src; });
+  gpFotoRel[produto] = out; return out;
+}
+async function gpFotosDe(lin) { const u = [...new Set(lin.map((l) => l.produto))], m = {}; let k = 0;
+  await Promise.all(Array.from({ length: 6 }, async () => { while (k < u.length) { const p = u[k++]; m[p] = await gpFotoDataURL(p); } })); return m; }
 async function gpRelatorio(tipo) {
   if (!pe.d || !pe.d.itens) { toast("A pronta entrega ainda não carregou."); return; }
   const lin = gpLinhasRel(), d = gpDescontos(), hoje = new Date().toLocaleDateString("pt-BR");
   const cab = "Pronta entrega Pollo Decor — " + hoje + " · filtro: " + GP_FILTRO_TXT[pe.filtro] + (pe.busca ? " · busca \"" + pe.busca + "\"" : "") + " · região: " + (gp.regiao ? gpNomeRegiao(gp.regiao) : "não escolhida");
   const desc = "Descontos: em linha " + (descTxt(d.linha) || "0%") + " · fora de linha " + (descTxt(d.fora) || "0%");
+  let w = null;
+  if (tipo !== "xlsx") { w = window.open("", "_blank"); if (!w) { toast("O navegador bloqueou a janela do relatório. Libere pop-ups para este site."); return; }
+    w.document.write("<p style='font:14px system-ui;margin:24px'>Montando o relatório com as fotos…</p>"); }
+  toast("Montando o relatório com as fotos de " + lin.length + " itens…");
+  const fotos = await gpFotosDe(lin);
   if (tipo === "xlsx") {
-    try { if (!window.XLSX) await carregarScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"); } catch (e) { toast("Não consegui carregar o gerador de Excel."); return; }
-    const aoa = [[cab], [desc], [], ["Categoria", "Código", "Produto", "Cor", "Tipo", "Livres (pç)", "Estoque (pç)", "Preço original", "Preço com desconto", "Unidade", "Obs."]]
-      .concat(lin.map((l) => [l.cat, l.cod, l.prod, l.cor, l.tipo, l.livres, l.estoque, l.orig, l.fin, l.unid, l.obs]));
-    const ws = XLSX.utils.aoa_to_sheet(aoa); ws["!cols"] = [12, 10, 40, 22, 13, 10, 11, 14, 16, 22, 22].map((w) => ({ wch: w }));
-    for (let r = 4; r < aoa.length; r++) for (const c of ["H", "I"]) { const x = ws[c + (r + 1)]; if (x && typeof x.v === "number") x.z = "\"R$\" #,##0.00"; }
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Pronta entrega");
-    XLSX.writeFile(wb, "Pronta_entrega_" + new Date().toISOString().slice(0, 10) + ".xlsx"); return;
+    try { if (!window.ExcelJS) await carregarScript("https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"); } catch (e) { toast("Não consegui carregar o gerador de Excel."); return; }
+    const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Pronta entrega");
+    ws.columns = [10, 12, 10, 40, 22, 13, 10, 11, 14, 16, 12, 22].map((wch) => ({ width: wch }));
+    ws.addRow([cab]).font = { bold: true, size: 13 }; ws.addRow([desc]); ws.addRow([]);
+    const h = ws.addRow(["Foto", "Categoria", "Código", "Produto", "Cor", "Tipo", "Livres (pç)", "Estoque (pç)", "Preço original", "Preço com desconto", "Unidade", "Obs."]);
+    h.font = { bold: true }; h.eachCell((c) => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F2EE" } }; });
+    ws.views = [{ state: "frozen", ySplit: 4 }];
+    for (const l of lin) {
+      const r = ws.addRow(["", l.cat, l.cod, l.prod, l.cor, l.tipo, l.livres, l.estoque, l.orig, l.fin, l.unid, l.obs]);
+      r.height = 58; r.alignment = { vertical: "middle", wrapText: true };
+      for (const c of [9, 10]) r.getCell(c).numFmt = "\"R$\" #,##0.00";
+      const f = fotos[l.produto];
+      if (f) { const id = wb.addImage({ base64: f.url, extension: "jpeg" }), k = 70 / Math.max(f.w, f.h);
+        ws.addImage(id, { tl: { col: 0.08, row: r.number - 1 + 0.06 }, ext: { width: Math.round(f.w * k), height: Math.round(f.h * k) }, editAs: "oneCell" }); }
+      else r.getCell(1).value = "sem foto";
+    }
+    const buf = await wb.xlsx.writeBuffer(), blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "Pronta_entrega_" + new Date().toISOString().slice(0, 10) + ".xlsx";
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); return;
   }
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
   const tot = lin.reduce((a, l) => a + l.livres, 0);
-  const html = "<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Pronta entrega " + esc(hoje) + "</title><style>body{font:12px system-ui,sans-serif;color:#1C2220;margin:18px}h1{font-size:16px;margin:0 0 4px}p{margin:2px 0;color:#525C57}table{border-collapse:collapse;width:100%;margin-top:10px}th,td{border-bottom:1px solid #D8DBD4;padding:5px 6px;text-align:left;vertical-align:top}th{background:#F1F2EE;font-size:11px}td.n{text-align:right;white-space:nowrap}s{color:#7F8883}@media print{button{display:none}}</style></head><body>"
+  const html = "<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><title>Pronta entrega " + esc(hoje) + "</title><style>body{font:12px system-ui,sans-serif;color:#1C2220;margin:18px}h1{font-size:16px;margin:0 0 4px}p{margin:2px 0;color:#525C57}table{border-collapse:collapse;width:100%;margin-top:10px}th,td{border-bottom:1px solid #D8DBD4;padding:5px 6px;text-align:left;vertical-align:middle}th{background:#F1F2EE;font-size:11px}td.n{text-align:right;white-space:nowrap}td.f{width:64px}td.f img{width:60px;height:60px;object-fit:contain;display:block}td.f span{color:#7F8883;font-size:10px}tr{break-inside:avoid}s{color:#7F8883}@media print{button{display:none}}</style></head><body>"
     + "<button onclick='print()'>Imprimir / salvar PDF</button><h1>" + esc(cab) + "</h1><p>" + esc(desc) + " · " + lin.length + " itens · " + tot + " peças livres</p>"
-    + "<table><thead><tr><th>Categoria</th><th>Código</th><th>Produto</th><th>Cor</th><th>Tipo</th><th>Livres</th><th>Preço</th><th>Obs.</th></tr></thead><tbody>"
-    + lin.map((l) => "<tr><td>" + esc(l.cat) + "</td><td>" + esc(l.cod) + "</td><td>" + esc(l.prod) + "</td><td>" + esc(l.cor) + "</td><td>" + esc(l.tipo) + "</td><td class='n'>" + l.livres + "</td><td class='n'>"
-      + (l.orig == null ? "" : (l.fin < l.orig ? "<s>" + esc(brl2(l.orig)) + "</s> → " : "") + esc(brl2(l.fin)) + " " + esc(l.unid)) + "</td><td>" + esc(l.obs) + "</td></tr>").join("")
+    + "<table><thead><tr><th>Foto</th><th>Categoria</th><th>Código</th><th>Produto</th><th>Cor</th><th>Tipo</th><th>Livres</th><th>Preço</th><th>Obs.</th></tr></thead><tbody>"
+    + lin.map((l) => { const f = fotos[l.produto]; return "<tr><td class='f'>" + (f ? "<img alt='' src='" + f.url + "'>" : "<span>sem foto</span>") + "</td><td>" + esc(l.cat) + "</td><td>" + esc(l.cod) + "</td><td>" + esc(l.prod) + "</td><td>" + esc(l.cor) + "</td><td>" + esc(l.tipo) + "</td><td class='n'>" + l.livres + "</td><td class='n'>"
+      + (l.orig == null ? "" : (l.fin < l.orig ? "<s>" + esc(brl2(l.orig)) + "</s> → " : "") + esc(brl2(l.fin)) + " " + esc(l.unid)) + "</td><td>" + esc(l.obs) + "</td></tr>"; }).join("")
     + "</tbody></table></body></html>";
-  const w = window.open("", "_blank"); if (!w) { toast("O navegador bloqueou a janela do relatório. Libere pop-ups para este site."); return; }
-  w.document.open(); w.document.write(html); w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 300);
+  w.document.open(); w.document.write(html); w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 500);
 }
 
 // ---------- tabela de preço da região (.xlsx lido no navegador) ----------

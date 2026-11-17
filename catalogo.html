@@ -20,14 +20,90 @@ body{display:flex;flex-direction:column;background:var(--surface);color:var(--in
 .barra a.fora{border-color:var(--line);color:var(--ink-3);font-weight:500;margin-left:auto}
 .barra b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 iframe{flex:1;width:100%;border:0;min-height:0}
+.corpo{flex:1;display:flex;min-height:0;position:relative}
+.corpo iframe{flex:1}
+.barra button{display:inline-flex;align-items:center;min-height:40px;padding:0 13px;border:1px solid var(--accent);border-radius:10px;font:600 14px system-ui,sans-serif;color:#fff;background:var(--accent);cursor:pointer;white-space:nowrap}
+#precos{flex:none;width:380px;border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--surface)}
+#precos[hidden]{display:none}
+#precos .topo{padding:10px 12px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+#precos select,#precos input{width:100%;min-height:40px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:16px system-ui,sans-serif}
+#precos .info{font-size:12px;color:var(--ink-3)}
+#precos ul{list-style:none;margin:0;padding:0;overflow:auto;flex:1}
+#precos li{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;gap:10px;justify-content:space-between}
+#precos li b{font-weight:500;font-size:14px}#precos li small{display:block;color:var(--ink-3);font-size:12px}
+#precos .v{text-align:right;white-space:nowrap;font-weight:600}#precos .v s{color:var(--ink-3);font-weight:400;font-size:12px;display:block}
+@media (max-width:760px){#precos{position:absolute;inset:0;width:auto;border-left:0}}
 </style>
 </head>
 <body>
 <div class="barra"><a id="voltar" href="./">← Voltar</a><b>Catálogo 2026</b><a class="fora" href="https://pollo-catalogo.hugolazevedo.workers.dev/" target="_blank" rel="noopener">Abrir em outra aba ↗</a></div>
-<iframe src="https://pollo-catalogo.hugolazevedo.workers.dev/" title="Catálogo Pollo Decor 2026" referrerpolicy="no-referrer"></iframe>
+<div class="corpo"><iframe src="https://pollo-catalogo.hugolazevedo.workers.dev/" title="Catálogo Pollo Decor 2026" referrerpolicy="no-referrer"></iframe><aside id="precos" hidden aria-label="Preços da região"></aside></div>
 <script>
 var de = new URLSearchParams(location.search).get("de");
 if (de === "gerente") document.getElementById("voltar").href = "gerente.html";
+</script>
+<script>
+// gerente: painel de preços da tabela em linha da região que ele escolher (só leitura; nada muda para os representantes)
+(function () {
+  if (de !== "gerente") return;
+  var token = null; try { token = localStorage.getItem("pe-gerente"); } catch (e) {}
+  if (!token) return;
+  var REG = [["br_es_go_spcap", "Brasília, ES, GO e SP capital"], ["mt_intsp_ne_sul", "MT, interior SP, Nordeste e Sul"], ["mg_rj", "Minas Gerais e Rio de Janeiro"]];
+  var lerLS = function (k, p) { try { var v = localStorage.getItem("gp-" + k); return v == null ? p : JSON.parse(v); } catch (e) { return p; } };
+  var gravarLS = function (k, v) { try { localStorage.setItem("gp-" + k, JSON.stringify(v)); } catch (e) {} };
+  var brl = function (v) { return (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); };
+  var norm = function (t) { return String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase(); };
+  var esc = function (t) { return String(t == null ? "" : t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]; }); };
+  var tabs = null, fator = 1, descTxt = "", regiao = lerLS("regiao", ""), busca = "";
+  var painel = document.getElementById("precos"), bt = document.createElement("button");
+  bt.type = "button"; bt.textContent = "Preços da região"; bt.setAttribute("aria-controls", "precos");
+  document.querySelector(".barra .fora").before(bt);
+  bt.onclick = function () { painel.hidden = !painel.hidden; bt.textContent = painel.hidden ? "Preços da região" : "Fechar preços"; if (!painel.hidden && !tabs) carregar(); };
+  function tabela() { return tabs && tabs.ativas ? tabs.ativas.find(function (t) { return t.regiao === regiao; }) || null : null; }
+  function render() {
+    var t = tabela();
+    painel.innerHTML = "<div class='topo'><select id='pReg' aria-label='Região da tabela'><option value=''>Escolha a região…</option>" + REG.map(function (r) {
+        var x = tabs && tabs.ativas ? tabs.ativas.find(function (a) { return a.regiao === r[0]; }) : null;
+        return "<option value='" + r[0] + "'" + (regiao === r[0] ? " selected" : "") + ">" + esc(r[1]) + (x ? " · v" + esc(x.versao || "?") : " · sem tabela") + "</option>"; }).join("") + "</select>"
+      + "<input id='pBusca' type='search' placeholder='Buscar produto ou código' autocomplete='off' value='" + esc(busca) + "'>"
+      + "<div class='info' id='pInfo'></div></div><ul id='pLista'></ul>";
+    var sel = document.getElementById("pReg"), inp = document.getElementById("pBusca");
+    sel.onchange = function () { regiao = sel.value; gravarLS("regiao", regiao); render(); };
+    inp.oninput = function () { busca = inp.value; lista(); };
+    lista();
+  }
+  function lista() {
+    var t = tabela(), info = document.getElementById("pInfo"), ul = document.getElementById("pLista");
+    if (!tabs) { info.textContent = "Carregando as tabelas…"; ul.innerHTML = ""; return; }
+    if (!regiao) { info.textContent = "Escolha a região para ver os preços em linha."; ul.innerHTML = ""; return; }
+    if (!t) { info.textContent = "Ainda não há tabela desta região. Envie na aba Pedidos da página do gerente."; ul.innerHTML = ""; return; }
+    var termos = norm(busca).split(/\s+/).filter(Boolean);
+    var achou = (t.itens || []).filter(function (x) { var a = norm(x.desc + " " + x.cod); return termos.every(function (w) { return a.indexOf(w) >= 0; }); });
+    info.textContent = "Tabela em linha v" + (t.versao || "?") + (t.data ? " de " + new Date(t.data + "T12:00").toLocaleDateString("pt-BR") : "") + " · " + achou.length + " de " + (t.itens || []).length + " itens"
+      + (fator < 1 ? " · com seus descontos em linha (" + descTxt + ")" : "") + (achou.length > 300 ? " · mostrando 300, refine a busca" : "");
+    ul.innerHTML = achou.slice(0, 300).map(function (x) { var fin = Math.round(Number(x.preco) * fator * 100) / 100;
+      return "<li><div><b>" + esc(x.desc) + "</b><small>cód. " + esc(x.cod) + "</small></div><div class='v'>" + (fator < 1 ? "<s>" + brl(x.preco) + "</s>" : "") + brl(fin) + "</div></li>"; }).join("");
+  }
+  function carregar() {
+    render();
+    var s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js";
+    s.onerror = function () { document.getElementById("pInfo").textContent = "Não consegui carregar as tabelas. Tente de novo."; };
+    s.onload = async function () {
+      var sb = window.supabase.createClient("https://qatazfwvckitolhqsqtl.supabase.co", "sb_publishable_Mq2CWYw_E4T13_rIYgH83Q_678o_prh");
+      try {
+        var r = await sb.rpc("api_tabelas_preco", { p_token: token }); if (r.error || !r.data || r.data.erro) throw new Error("tab");
+        tabs = r.data;
+        var d = await sb.rpc("api_descontos", { p_token: token });
+        var l = d.data && d.data.atual && d.data.atual.linha ? d.data.atual.linha.map(Number) : [];
+        fator = l.reduce(function (a, v) { return a * (1 - (v || 0) / 100); }, 1);
+        descTxt = l.filter(function (v) { return v > 0; }).map(function (v) { return String(v).replace(".", ",") + "%"; }).join(" + ");
+        if (!regiao && tabs.ativas && tabs.ativas.length === 1) regiao = tabs.ativas[0].regiao;
+        render();
+      } catch (e) { document.getElementById("pInfo").textContent = "Não consegui ler as tabelas. Entre de novo pela página do gerente."; }
+    };
+    document.head.append(s);
+  }
+})();
 </script>
 </body>
 </html>
