@@ -497,6 +497,7 @@ async function carregarPE() {
     if (!Object.keys(pe.fotos).length) { try { const f = await fetch("fotos.json", { cache: "no-cache" }); if (f.ok) pe.fotos = await f.json(); } catch (e) {} }
     const n = await chamar("api_fotos", { p_token: token }); if (n && !n.erro) pe.novas = n;
   } catch (e) { toast("Não consegui carregar a pronta entrega."); }
+  if (typeof gpCarregar === "function" && (!gp.desc || !gp.tabs)) await gpCarregar();
   if (montado && aba === "pe") render();
 }
 function reduzirFoto(arquivo) {
@@ -532,8 +533,9 @@ function renderPE() {
     bx.addEventListener("input", () => { pe.busca = bx.value; renderPELista(); });
     const arq = el("input", { type: "file", id: "peArq", accept: "image/*", hidden: true });
     arq.addEventListener("change", () => { const f = arq.files && arq.files[0]; arq.value = ""; if (f) enviarFoto(f); });
-    corpo.replaceChildren(el("div", { class: "ferramentas" }, bx, arq), el("div", { class: "chips", id: "peChips" }), el("div", { id: "peLista" }));
+    corpo.replaceChildren(el("div", { class: "ferramentas" }, bx, arq), el("div", { id: "gpBarra" }), el("div", { class: "chips", id: "peChips" }), el("div", { id: "peLista" }));
   }
+  if (typeof gpRenderBarra === "function") gpRenderBarra();
   renderPELista();
 }
 function renderPELista() {
@@ -559,8 +561,7 @@ function renderPELista() {
         el("div", null, el("div", { class: "resNome" }, nome),
           el("div", { class: "resSub" }, titulo(i.cor), el("span", { class: "etq " + (i.em_linha ? "linha" : "fora") }, i.em_linha ? "Em linha" : "Fora de linha"), i.sem_luminaria ? el("span", { class: "etq lum" }, "Sem luminária") : null,
             el("span", { class: "etq " + (nova ? "neutra" : src ? "fora" : "crit") }, nova ? "Foto enviada pela gerência" : src ? "Foto do catálogo" : "Sem foto")),
-          !p.mostra_preco ? null : !i.em_linha && i.preco != null ? el("div", { class: "precoItem" }, brl(i.preco), el("small", null, /par/i.test(i.observacao || "") ? "o par" : "un."))
-            : el("div", { class: "precoItem tab" }, i.em_linha ? "Consultar tabela" : "Preço sob consulta")),
+          typeof gpPrecoEl === "function" ? gpPrecoEl(i) : null),
         el("div", { class: "peNums" }, el("div", null, el("b", null, fmt(i.qtd)), el("small", null, "estoque")), el("div", null, el("b", null, fmt(i.reservado)), el("small", null, "reserv.")), el("div", { class: "livre" }, el("b", null, fmt(i.disponivel)), el("small", null, "livres"))),
         el("div", { class: "peAcoes" }, el("button", { class: "bt" + (nova || src ? "" : " forte"), type: "button", onclick: escolher }, nova || src ? "Trocar foto" : "Anexar foto"),
           nova ? el("button", { class: "bt", type: "button", onclick: () => tirarFoto(i.produto) }, src ? "Voltar à foto do catálogo" : "Tirar a foto enviada") : null,
@@ -680,13 +681,13 @@ function render() {
   $("#diaTxt").replaceChildren(document.createTextNode(oDia === hoje ? "Hoje, " + dataBR(oDia) : dataBR(oDia)),
     el("br"), document.createTextNode("reserva sem pedido cai às 23h59"),
     ...(aud && aud.publicacao ? [el("br"), document.createTextNode("Pronta entrega atualizada em " + quandoBR(aud.publicacao.em) + (aud.publicacao.por ? " por " + aud.publicacao.por : ""))] : []));
-  const naAud = aba === "aud" || aba === "cli" || aba === "pe" || aba === "jogo";
-  $("#tituloTela").textContent = aba === "aud" ? "Auditoria do sistema" : aba === "cli" ? "Clientes" : aba === "pe" ? "Pronta entrega" : aba === "jogo" ? "Placar de metas" : aba === "reps" ? "Representantes" : "Reservas do dia";
+  const naAud = aba === "aud" || aba === "cli" || aba === "pe" || aba === "jogo" || aba === "ped";
+  $("#tituloTela").textContent = aba === "aud" ? "Auditoria do sistema" : aba === "cli" ? "Clientes" : aba === "pe" ? "Pronta entrega" : aba === "jogo" ? "Placar de metas" : aba === "ped" ? "Pedidos" : aba === "reps" ? "Representantes" : "Reservas do dia";
   $("#placar").hidden = naAud; $("#ferramentas").hidden = naAud; $("#chips").hidden = naAud;
-  $("#abas").replaceChildren(...[["reservas", "Reservas", linhas.length], ["pe", "Pronta entrega", pe.d && pe.d.itens ? pe.d.itens.length : 0], ["jogo", "Metas", jogo && jogo.lista ? jogo.lista.filter((x) => x.meta > 0).length : 0], ["reps", "Representantes", (reps || []).filter((r) => r.papel === "representante").length]]
+  $("#abas").replaceChildren(...[["reservas", "Reservas", linhas.length], ["pe", "Pronta entrega", pe.d && pe.d.itens ? pe.d.itens.length : 0], ["ped", "Pedidos", typeof gp !== "undefined" && gp.ped ? gp.ped.length : 0], ["jogo", "Metas", jogo && jogo.lista ? jogo.lista.filter((x) => x.meta > 0).length : 0], ["reps", "Representantes", (reps || []).filter((r) => r.papel === "representante").length]]
     .concat([["cli", "Clientes", cli.d ? cli.d.base : 0], ["aud", "Auditoria", aud ? aud.total : 0]])
     .map(([v, t, n]) => el("button", { role: "tab", type: "button", "aria-selected": String(aba === v),
-      onclick: () => { aba = v; render(); if (v === "aud") carregarAud(); if (v === "cli") carregarCli(); if (v === "pe") carregarPE(); if (v === "jogo") carregarJogo(); } }, t, el("b", null, fmt(n)))),
+      onclick: () => { aba = v; render(); if (v === "aud") carregarAud(); if (v === "cli") carregarCli(); if (v === "pe") carregarPE(); if (v === "jogo") carregarJogo(); if (v === "ped" && typeof carregarPed === "function") carregarPed(); } }, t, el("b", null, fmt(n)))),
     el("a", { class: "painel", href: "painel.html" }, "Painel Executivo"),
     el("a", { class: "painel", href: "catalogo.html?de=gerente" }, "Catálogo"),
     el("a", { class: "ext", href: "https://claude.ai/artifact/R41KP89q4RFJ6yUgo16eRP", target: "_blank", rel: "noopener" }, "Gestão Comercial ↗"));
@@ -695,7 +696,7 @@ function render() {
     el("div", null, el("div", { class: "rot" }, "Virou pedido"), el("div", { class: "val ped" }, fmt(ped)), el("div", { class: "un" }, "peças")),
     el("div", null, el("div", { class: "rot" }, "Aguardando"), el("div", { class: "val pend" }, fmt(pc - ped)), el("div", { class: "un" }, "peças · caem hoje")),
     el("div", null, el("div", { class: "rot" }, "Representantes"), el("div", { class: "val" }, fmt(pessoas)), el("div", { class: "un" }, "reservaram")));
-  if (aba === "reservas") renderReservas(linhas); else if (aba === "reps") renderReps(); else if (aba === "cli") renderCli(); else if (aba === "pe") renderPE(); else if (aba === "jogo") renderJogo(); else renderAud();
+  if (aba === "reservas") renderReservas(linhas); else if (aba === "reps") renderReps(); else if (aba === "cli") renderCli(); else if (aba === "pe") renderPE(); else if (aba === "jogo") renderJogo(); else if (aba === "ped") { if (typeof renderPed === "function") renderPed(); } else renderAud();
 }
 function renderCli() {
   const corpo = $("#corpo"), d = cli.d;
@@ -993,8 +994,9 @@ function renderReps() {
 }
 
 if (token) carregar(); else telaEntrar();
-document.addEventListener("visibilitychange", () => { if (!document.hidden && token && montado && !ocupado && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps" && !mt.aberto) carregar(); });
-setInterval(() => { if (!document.hidden && token && montado && !ocupado && !/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "") && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps" && !mt.aberto) carregar(); }, 90000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && token && montado && !ocupado && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps" && aba !== "ped" && !mt.aberto) carregar(); });
+setInterval(() => { if (!document.hidden && token && montado && !ocupado && !/^(INPUT|SELECT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "") && !(aba === "cli" && (cli.aberto || cli.imp)) && aba !== "reps" && aba !== "ped" && !mt.aberto) carregar(); }, 90000);
 </script>
+<script src="gerente_pedidos.js"></script>
 </body>
 </html>
